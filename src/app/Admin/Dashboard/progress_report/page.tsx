@@ -160,6 +160,7 @@ export default function ProgressReportPage() {
     // State จัดการข้อมูลแจ้งซ่อมจาก DB
     const [reportList, setReportList] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -352,13 +353,45 @@ export default function ProgressReportPage() {
         );
     };
 
-    // ยืนยันการลบรายการ
-    const confirmDelete = () => {
-        setReportList((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
-        setSelectedIds([]);
-        setDeleteModalOpen(false);
-        setIsDeleteMode(false);
-        showToast('ลบรายการที่เลือกเรียบร้อยแล้ว');
+    // ยืนยันการลบรายการไปยัง Backend & Supabase DB
+    const confirmDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        setIsDeleting(true);
+        try {
+            const results = await Promise.all(
+                selectedIds.map(async (id) => {
+                    const res = await fetch(`/api/requests/${id}`, {
+                        method: 'DELETE',
+                    });
+                    const data = await res.json();
+                    return { id, success: res.ok && data.success };
+                })
+            );
+
+            const successfulIds = results.filter((r) => r.success).map((r) => r.id);
+            const failedCount = results.length - successfulIds.length;
+
+            if (successfulIds.length > 0) {
+                setReportList((prev) => prev.filter((item) => !successfulIds.includes(item.id)));
+            }
+
+            if (failedCount === 0) {
+                showToast(`ลบรายการที่เลือกเรียบร้อยแล้ว (${successfulIds.length} รายการ)`);
+            } else if (successfulIds.length > 0) {
+                showToast(`ลบสำเร็จ ${successfulIds.length} รายการ (ล้มเหลว ${failedCount} รายการ)`);
+            } else {
+                showToast('ไม่สามารถลบรายการได้ กรุณาลองใหม่อีกครั้ง');
+            }
+        } catch (error) {
+            console.error('Failed to delete requests:', error);
+            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+        } finally {
+            setSelectedIds([]);
+            setDeleteModalOpen(false);
+            setIsDeleteMode(false);
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -685,13 +718,15 @@ export default function ProgressReportPage() {
                         <div className="flex gap-3">
                             <button
                                 onClick={confirmDelete}
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                                disabled={isDeleting}
+                                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
                             >
-                                ลบรายการ
+                                {isDeleting ? 'กำลังลบ...' : 'ลบรายการ'}
                             </button>
                             <button
                                 onClick={() => setDeleteModalOpen(false)}
-                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                                disabled={isDeleting}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
                             >
                                 ยกเลิก
                             </button>

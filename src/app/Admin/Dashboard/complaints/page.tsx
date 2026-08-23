@@ -75,7 +75,7 @@ const categorySummary = [
 ];
 
 // ปรับให้ป้ายสถานะมีความกว้าง (w-[90px]) และการตกแต่งที่เหมือนกัน
-const renderStatusBadge = (status) => {
+const renderStatusBadge = (status: string) => {
     if (status === 'แจ้งแล้ว') {
         return (
             <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] text-center shadow-xs">
@@ -122,7 +122,7 @@ export default function ComplaintsPage() {
     // State จัดการข้อมูลรายการแจ้งซ่อม
     const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // ดึงข้อมูลจาก Backend API (/api/requests)
     const fetchComplaints = async () => {
@@ -220,7 +220,7 @@ export default function ComplaintsPage() {
         { id: 3, title: 'ตรวจพบเรื่องแจ้งซ้ำ', desc: 'โถส้วมชำรุด ห้องน้ำหญิง ชั้น 1 (4 ครั้ง)', time: '1 ชั่วโมงที่แล้ว' },
     ];
 
-    const showToast = (msg) => {
+    const showToast = (msg: string) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(''), 3500);
     };
@@ -334,7 +334,7 @@ export default function ComplaintsPage() {
         });
     }, [filteredComplaints]);
 
-    const toggleGroupExpand = (groupId) => {
+    const toggleGroupExpand = (groupId: string) => {
         setExpandedGroupIds(prev =>
             prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
         );
@@ -503,7 +503,7 @@ export default function ComplaintsPage() {
         }
     };
 
-    const handleSelectRow = (id) => {
+    const handleSelectRow = (id: string) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
         );
@@ -517,9 +517,9 @@ export default function ComplaintsPage() {
         showToast('ลบข้อมูลเรียบร้อยแล้ว');
     };
 
-    const exportToCSV = (type) => {
-        let headers = [];
-        let rows = [];
+    const exportToCSV = (type: string) => {
+        let headers: string[] = [];
+        let rows: (string | number)[][] = [];
         let filename = `export_report_${new Date().toISOString().slice(0, 10)}.csv`;
 
         if (type === 'complaints') {

@@ -219,7 +219,7 @@ const duplicateReports = [
 ];
 
 // Helper Function สร้าง subItems สำรองหากข้อมูลไม่ครบ
-const getSubItems = (item) => {
+const getSubItems = (item: any) => {
     if (item.subItems && item.subItems.length > 0) return item.subItems;
     const count = item.count || 1;
     return Array.from({ length: count }, (_, i) => ({
@@ -232,7 +232,7 @@ const getSubItems = (item) => {
 };
 
 // Custom Component สำหรับจุดกราฟ
-const CustomDot = (props) => {
+const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
     if (payload.count > 0) {
         const isDay26 = payload.day === '26';
@@ -259,7 +259,7 @@ const CustomDot = (props) => {
 };
 
 // Custom Component สำหรับแกน X
-const CustomXAxisTick = (props) => {
+const CustomXAxisTick = (props: any) => {
     const { x, y, payload } = props;
     return (
         <g transform={`translate(${x},${y})`}>
@@ -921,7 +921,7 @@ export default function Dashboard() {
                                             : `รายการความเสียหายทั้งหมด (${(selectedItem.subItems || getSubItems(selectedItem)).length} รายการ)`}
                                     </h4>
                                     <div className="space-y-2.5">
-                                        {(selectedItem.subItems || getSubItems(selectedItem)).map((sub, idx) => (
+                                        {(selectedItem.subItems || getSubItems(selectedItem)).map((sub: any, idx: number) => (
                                             <div
                                                 key={idx}
                                                 className="bg-purple-50/40 border border-purple-100/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 hover:bg-purple-50 transition-colors"

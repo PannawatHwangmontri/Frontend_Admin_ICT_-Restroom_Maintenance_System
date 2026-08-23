@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
     const token = req.cookies.get('auth_token')?.value;
 
@@ -25,7 +25,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
 }
 
-// กำหนดว่า Middleware จะทำงานกับ path ไหนบ้าง
+// กำหนดว่า Proxy จะทำงานกับ path ไหนบ้าง
 export const config = {
     matcher: [
         '/Admin/Dashboard/:path*',

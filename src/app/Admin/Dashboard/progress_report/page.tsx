@@ -7,7 +7,6 @@ import {
     Wrench,
     Clock,
     Users,
-    LogOut,
     Menu,
     User,
     Trash2,
@@ -80,84 +79,69 @@ const floorData = [
     }
 ];
 
-// ข้อมูลจำลองสำหรับรายงานความคืบหน้า
+// ข้อมูลจำลองรองรับ 3 สถานะสำรองกรณีไม่ได้เชื่อม Database
 const initialReportList = [
     {
         id: '1',
         code: '#AW1-01',
-        date: '20/07/2026',
+        date: '20/07/2026 10:00 น.',
         floor: 'ชั้น 1',
         location: 'ห้องน้ำหญิง ชั้น 1 โซน A',
         category: 'หมวดหมู่ ระบบน้ำ',
-        problem: 'สายฉีดชำระเสีย ห้อง 2',
+        problem: 'ระบบน้ำ สายฉีดชำระเสีย 3 ชุด',
         severity: 'ปกติ',
-        status: 'แจ้งแล้ว'
+        status: 'รับเรื่อง'
     },
     {
         id: '2',
         code: '#AW1-02',
-        date: '20/07/2026',
-        floor: 'ชั้น 1',
-        location: 'ห้องน้ำหญิง ชั้น 1 โซน A',
+        date: '20/07/2026 10:30 น.',
+        floor: 'ชั้น 2',
+        location: 'ห้องน้ำหญิง ชั้น 2 โซน A',
         category: 'หมวดหมู่ ระบบน้ำ',
-        problem: 'สายฉีดชำระเสีย ห้อง 2',
+        problem: 'ระบบน้ำ สายฉีดชำระเสีย 3 ชุด',
         severity: 'ปกติ',
-        status: 'แจ้งแล้ว'
+        status: 'รอรับเรื่อง'
     },
     {
         id: '3',
         code: '#AM1-03',
-        date: '20/07/2026',
+        date: '20/07/2026 11:15 น.',
         floor: 'ชั้น 1',
         location: 'ห้องน้ำชาย ชั้น 1 โซน A',
         category: 'หมวดหมู่ ระบบน้ำ',
-        problem: 'ท่อน้ำรั่ว',
+        problem: 'ระบบน้ำ ท่อน้ำรั่ว 3 จุด',
         severity: 'เร่งด่วน',
-        status: 'แจ้งแล้ว'
+        status: 'รอรับเรื่อง'
     },
     {
         id: '4',
-        code: '#AW2-01',
-        date: '21/07/2026',
+        code: '#ES1-04',
+        date: '19/07/2026 14:20 น.',
         floor: 'ชั้น 2',
-        location: 'ห้องน้ำหญิง ชั้น 2 โซน D',
+        location: 'ห้องน้ำชาย ชั้น 2 โซน B',
         category: 'หมวดหมู่ ระบบไฟฟ้า',
-        problem: 'หลอดไฟเสีย 2 หลอด',
+        problem: 'ระบบไฟฟ้า หลอดไฟเสีย 3 หลอด',
         severity: 'ปกติ',
+        status: 'รับเรื่อง'
+    },
+    {
+        id: '5',
+        code: '#ST2-05',
+        date: '18/07/2026 09:00 น.',
+        floor: 'ชั้น 3',
+        location: 'ห้องน้ำหญิง ชั้น 3 โซน A',
+        category: 'หมวดหมู่ สุขภัณฑ์',
+        problem: 'สุขภัณฑ์ โถส้วมชำรุด 3 ชุด',
+        severity: 'เร่งด่วน',
         status: 'ไม่รับเรื่อง'
     },
-];
-
-// ข้อมูลจำลองสำหรับการแจ้งเตือน
-const initialNotifications = [
-    {
-        id: 1,
-        title: 'มีการแจ้งซ่อมใหม่',
-        time: '5 นาทีที่แล้ว',
-        detail: 'สายฉีดชำระชำรุด ห้องน้ำชาย ชั้น 2'
-    },
-    {
-        id: 2,
-        title: 'อัปเดตสถานะงาน',
-        time: '20 นาทีที่แล้ว',
-        detail: 'ช่างรับเรื่องแล้ว: ก๊อกน้ำอ่างล้างมือ ชั้น 1'
-    },
-    {
-        id: 3,
-        title: 'ตรวจพบเรื่องแจ้งซ้ำ',
-        time: '1 ชั่วโมงที่แล้ว',
-        detail: 'โถส้วมชำรุด ห้องน้ำหญิง ชั้น 1 (4 ครั้ง)'
-    }
 ];
 
 export default function ProgressReportPage() {
     const openMobileMenu = useOpenMobileMenu();
 
-    // State จัดการการแจ้งเตือน Dropdown
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [notifications, setNotifications] = useState(initialNotifications);
-
-    // State จัดการข้อมูลแจ้งซ่อมจาก DB
+    // State จัดการข้อมูลแจ้งซ่อมกลาง (เชื่อมโยงกับฐานข้อมูลเดียวกัน)
     const [reportList, setReportList] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -165,9 +149,6 @@ export default function ProgressReportPage() {
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
-
-    // State สำหรับการอัปเดตสถานะ
-    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     // State จัดการ Dropdown เลือกชั้นและโซน
     const [isFloorDropdownOpen, setIsFloorDropdownOpen] = useState(false);
@@ -184,7 +165,7 @@ export default function ProgressReportPage() {
         setTimeout(() => setToastMessage(''), 3000);
     };
 
-    // ดึงข้อมูลจริงจาก Backend API
+    // ดึงข้อมูลจริงจาก Backend API ร่วมกับหน้ารายการแจ้งซ่อม
     const fetchRequests = async () => {
         try {
             setIsLoading(true);
@@ -193,22 +174,36 @@ export default function ProgressReportPage() {
             if (result.success && Array.isArray(result.data)) {
                 const mapped = result.data.map((item: any) => {
                     const d = item.reported_at ? new Date(item.reported_at) : new Date();
-                    const dateStr = d.toLocaleDateString('th-TH');
+                    const dateStr = d.toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) + ' น.';
 
-                    let cat = 'หมวดหมู่ ระบบน้ำ';
+                    let cat = 'ระบบน้ำ';
                     const summary = item.issue_summary || '';
                     if (summary.includes('ไฟ') || summary.includes('หลอดไฟ') || summary.includes('ปลั๊ก')) {
-                        cat = 'หมวดหมู่ ระบบไฟฟ้า';
+                        cat = 'ระบบไฟฟ้า';
                     } else if (summary.includes('ส้วม') || summary.includes('โถ') || summary.includes('อ่าง') || summary.includes('กระจก') || summary.includes('ประตู')) {
-                        cat = 'หมวดหมู่ สุขภัณฑ์';
+                        cat = 'สุขภัณฑ์';
                     }
 
-                    // สกัดชั้นจากสถานที่ เช่น "ชั้น 1", "ชั้น 2"
+                    // สกัดชั้นจากสถานที่
                     let floorName = 'ชั้น 1';
                     const loc = item.location || '';
                     if (loc.includes('ชั้น 2')) floorName = 'ชั้น 2';
                     else if (loc.includes('ชั้น 3')) floorName = 'ชั้น 3';
                     else if (loc.includes('ชั้น 4')) floorName = 'ชั้น 4';
+
+                    // กำหนดสถานะมาตรฐาน 3 สถานะ
+                    let currentStatus = 'รอรับเรื่อง';
+                    if (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว' || item.status === 'กำลังดำเนินการ' || item.status === 'เสร็จสิ้น') {
+                        currentStatus = 'รับเรื่อง';
+                    } else if (item.status === 'ไม่รับเรื่อง' || item.status === 'ยกเลิก') {
+                        currentStatus = 'ไม่รับเรื่อง';
+                    }
 
                     return {
                         id: String(item.id),
@@ -220,16 +215,18 @@ export default function ProgressReportPage() {
                         category: cat,
                         problem: item.issue_summary || 'ไม่มีรายละเอียด',
                         severity: item.priority === 'HIGH' || item.priority === 'URGENT' ? 'เร่งด่วน' : 'ปกติ',
-                        status: item.status || 'รอรับเรื่อง',
+                        status: currentStatus,
                         remark: item.remark || '',
                         imageUrl: item.image_url || null,
                     };
                 });
                 setReportList(mapped);
+            } else {
+                setReportList(initialReportList);
             }
         } catch (error) {
             console.error('Failed to fetch requests in progress_report:', error);
-            showToast('เกิดข้อผิดพลาดในการดึงข้อมูล');
+            setReportList(initialReportList);
         } finally {
             setIsLoading(false);
         }
@@ -266,8 +263,8 @@ export default function ProgressReportPage() {
             diffPercent = 100;
         }
 
-        const acceptedCount = currentMonthReqs.filter(r => r.status === 'แจ้งแล้ว' || r.status === 'กำลังดำเนินการ' || r.status === 'เสร็จสิ้น').length;
-        const rejectedCount = currentMonthReqs.filter(r => r.status === 'ไม่รับเรื่อง' || r.status === 'ยกเลิก').length;
+        const acceptedCount = currentMonthReqs.filter(r => r.status === 'รับเรื่อง').length;
+        const rejectedCount = currentMonthReqs.filter(r => r.status === 'ไม่รับเรื่อง').length;
 
         return {
             totalThisMonth: reportList.length > 0 ? totalThisMonth : 0,
@@ -277,43 +274,29 @@ export default function ProgressReportPage() {
         };
     }, [reportList]);
 
-    // ฟังก์ชันอัปเดตสถานะไปยัง Backend & Supabase DB
-    const handleStatusChange = async (id: string, newStatus: string) => {
-        try {
-            setUpdatingId(id);
-            const targetItem = reportList.find(r => r.id === id);
-            const remarkText = targetItem?.remark || `อัปเดตสถานะเป็น ${newStatus}`;
-
-            const res = await fetch(`/api/requests/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: newStatus,
-                    remark: remarkText
-                })
-            });
-
-            const result = await res.json();
-            if (result.success) {
-                setReportList(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
-                if (activeDetail && activeDetail.id === id) {
-                    setActiveDetail((prev: any) => ({ ...prev, status: newStatus }));
-                }
-                showToast(`อัปเดตสถานะเป็น "${newStatus}" เรียบร้อยแล้ว`);
-            } else {
-                showToast(`เกิดข้อผิดพลาด: ${result.message || 'ไม่สามารถอัปเดตได้'}`);
-            }
-        } catch (error) {
-            console.error('Failed to update status:', error);
-            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-        } finally {
-            setUpdatingId(null);
+    // แสดงผล Badge สถานะ
+    const renderStatusBadge = (status: string) => {
+        switch (status) {
+            case 'รับเรื่อง':
+                return (
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]">
+                        รับเรื่อง
+                    </span>
+                );
+            case 'ไม่รับเรื่อง':
+                return (
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA]">
+                        ไม่รับเรื่อง
+                    </span>
+                );
+            case 'รอรับเรื่อง':
+            default:
+                return (
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#FEF9C3] text-[#854D0E] border border-[#FEF08A]">
+                        รอรับเรื่อง
+                    </span>
+                );
         }
-    };
-
-    // ล้างรายการแจ้งเตือนทั้งหมด
-    const handleMarkAllAsRead = () => {
-        setNotifications([]);
     };
 
     // ---------------- [ส่วนคัดกรองข้อมูล] ----------------
@@ -353,7 +336,7 @@ export default function ProgressReportPage() {
         );
     };
 
-    // ยืนยันการลบรายการไปยัง Backend & Supabase DB
+    // ยืนยันการลบรายการไปยัง Backend DB (ทำให้หน้า complaints ลบตามทันที)
     const confirmDelete = async () => {
         if (selectedIds.length === 0) return;
 
@@ -428,7 +411,7 @@ export default function ProgressReportPage() {
                     </div>
                 </header>
 
-                {/* ---------------- Summary Metric Cards (3 Cards) ---------------- */}
+                {/* ---------------- Summary Metric Cards ---------------- */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-xs">
                         <p className="text-xs font-medium text-gray-500 mb-1">
@@ -442,19 +425,19 @@ export default function ProgressReportPage() {
                     </div>
 
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-xs">
-                        <p className="text-xs font-medium text-gray-500 mb-1">แจ้งแล้ว / กำลังดำเนินการ</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#108653] mb-2">{metrics.acceptedCount}</div>
-                        <p className="text-xs text-gray-400">มีเจ้าหน้าที่รับผิดชอบ</p>
+                        <p className="text-xs text-gray-400">มีเจ้าหน้าที่รับเรื่องแล้ว</p>
                     </div>
 
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-xs sm:col-span-2 lg:col-span-1">
-                        <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง / ยกเลิก</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#e83455] mb-2">{metrics.rejectedCount}</div>
                         <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน/ยกเลิก</p>
                     </div>
                 </div>
 
-                {/* ---------------- Floor Dropdown Filter (4 Floors) ---------------- */}
+                {/* ---------------- Floor Dropdown Filter ---------------- */}
                 <div className="flex justify-end mb-4 relative z-20">
                     <div className="relative w-full sm:w-64">
                         <button
@@ -552,12 +535,12 @@ export default function ProgressReportPage() {
                     </div>
                 </div>
 
-                {/* ---------------- Data Table Section ---------------- */}
+                {/* ---------------- Data Table Section (ปรับขนาดตารางรองรับ Scroll ในตัว) ---------------- */}
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-xs overflow-hidden mb-6">
                     {/* Table Header Action Bar */}
                     <div className="bg-[#6B21A8] text-white px-4 py-3.5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-sm sm:text-base">จัดการสถานะห้องน้ำ</h3>
+                            <h3 className="font-bold text-sm sm:text-base">ติดตามสถานะการแจ้งซ่อม</h3>
                             {selectedIds.length > 0 && (
                                 <span className="bg-purple-800 text-purple-100 text-xs px-2.5 py-0.5 rounded-full font-medium">
                                     เลือก {selectedIds.length} รายการ
@@ -606,10 +589,11 @@ export default function ProgressReportPage() {
                         </div>
                     </div>
 
-                    {/* Table Content */}
-                    <div className="overflow-x-auto">
+                    {/* Table Content Container: กำหนด max-h-[500px] และ overflow-y-auto เพื่อให้เลื่อนดูในตารางได้แทนการยืดตัว */}
+                    <div className="max-h-[500px] overflow-y-auto overflow-x-auto relative">
                         <table className="w-full text-left border-collapse min-w-[700px]">
-                            <thead className="bg-[#E9D5FF] text-[#4C1D95] text-xs font-bold">
+                            {/* Sticky Header ติดอยู่ด้านบนขณะ Scroll */}
+                            <thead className="bg-[#E9D5FF] text-[#4C1D95] text-xs font-bold sticky top-0 z-10 shadow-xs">
                                 <tr>
                                     {isDeleteMode && <th className="p-3 text-center w-10">เลือก</th>}
                                     <th className="p-3">ID</th>
@@ -654,7 +638,7 @@ export default function ProgressReportPage() {
                                                 <td className="p-3 whitespace-nowrap">{item.date}</td>
                                                 <td className="p-3">{item.location}</td>
                                                 <td className="p-3">
-                                                    <div className="font-semibold">{item.category}</div>
+                                                    <div className="font-semibold text-gray-900">{item.category}</div>
                                                     <div className="text-gray-500">{item.problem}</div>
                                                 </td>
                                                 <td className="p-3 text-center">
@@ -667,24 +651,9 @@ export default function ProgressReportPage() {
                                                         {item.severity}
                                                     </span>
                                                 </td>
+                                                {/* แสดงสถานะแบบ ดูได้อย่างเดียว (Read-Only) */}
                                                 <td className="p-3 text-center">
-                                                    <select
-                                                        disabled={updatingId === item.id}
-                                                        value={item.status}
-                                                        onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer focus:outline-none ${item.status === 'แจ้งแล้ว'
-                                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                                            : item.status === 'รอรับเรื่อง'
-                                                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                                                : 'bg-red-50 text-red-800 border-red-300'
-                                                            }`}
-                                                    >
-                                                        {item.status === 'รอรับเรื่อง' && (
-                                                            <option value="รอรับเรื่อง">รอรับเรื่อง</option>
-                                                        )}
-                                                        <option value="แจ้งแล้ว">แจ้งแล้ว</option>
-                                                        <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>
-                                                    </select>
+                                                    {renderStatusBadge(item.status)}
                                                 </td>
                                                 <td className="p-3 text-center">
                                                     <button
@@ -771,20 +740,10 @@ export default function ProgressReportPage() {
                                 <span className="font-semibold text-gray-500">ระดับความสำคัญ:</span>
                                 <span className="font-bold text-red-600">{activeDetail.severity}</span>
                             </div>
+                            {/* แสดงสถานะแบบ ดูได้อย่างเดียว ใน Modal */}
                             <div className="flex justify-between items-center py-1 border-b border-gray-100">
                                 <span className="font-semibold text-gray-500">สถานะ:</span>
-                                <select
-                                    disabled={updatingId === activeDetail.id}
-                                    value={activeDetail.status}
-                                    onChange={(e) => handleStatusChange(activeDetail.id, e.target.value)}
-                                    className="bg-purple-50 text-[#6B21A8] font-bold text-xs px-2.5 py-1 rounded-lg border border-purple-300 focus:outline-none cursor-pointer"
-                                >
-                                    {activeDetail.status === 'รอรับเรื่อง' && (
-                                        <option value="รอรับเรื่อง">รอรับเรื่อง</option>
-                                    )}
-                                    <option value="แจ้งแล้ว">แจ้งแล้ว</option>
-                                    <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>
-                                </select>
+                                {renderStatusBadge(activeDetail.status)}
                             </div>
                         </div>
 

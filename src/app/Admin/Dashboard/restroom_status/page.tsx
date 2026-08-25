@@ -31,36 +31,36 @@ interface Restroom {
 // ข้อมูลจำลองจุดห้องน้ำที่ปรับพิกัดให้อยู่ตรงบริเวณโซนห้องน้ำสีฟ้าพอดี
 const initialRestrooms: Restroom[] = [
     // --- ชั้น 1 ---
-    { id: '1-W-A', floor: 1, name: 'ห้องน้ำหญิง โซน A', status: 'available', x: 72.5, y: 30.5 },
-    { id: '1-M-A', floor: 1, name: 'ห้องน้ำชาย โซน A', status: 'available', x: 70.8, y: 25.5 },
-    { id: '1-W-B', floor: 1, name: 'ห้องน้ำหญิง โซน B', status: 'available', x: 23.5, y: 35.5 },
-    { id: '1-M-B', floor: 1, name: 'ห้องน้ำชาย โซน B', status: 'available', x: 25.2, y: 30.5 },
+    { id: '1-M-A', floor: 1, name: 'ห้องน้ำชาย / ชั้น 1 โซน A', status: 'available', x: 72.8, y: 29.63 },
+    { id: '1-W-A', floor: 1, name: 'ห้องน้ำหญิง / ชั้น 1 โซน A', status: 'available', x: 71.7, y: 26.10 },
+    { id: '1-M-B', floor: 1, name: 'ห้องน้ำชาย / ชั้น 1 โซน B', status: 'available', x: 24.9, y: 31.47 },
+    { id: '1-W-B', floor: 1, name: 'ห้องน้ำหญิง / ชั้น 1 โซน B', status: 'available', x: 23.8, y: 35.43 },
 
     // --- ชั้น 2 ---
-    { id: '2-W-H', floor: 2, name: 'ห้องน้ำหญิง โซนหอประชุมพะเยา', status: 'available', x: 36.0, y: 30.5 },
-    { id: '2-M-H', floor: 2, name: 'ห้องน้ำชาย โซนหอประชุมพะเยา', status: 'available', x: 32.0, y: 28.5 },
-    { id: '2-W-D', floor: 2, name: 'ห้องน้ำหญิง โซน D', status: 'available', x: 58.5, y: 38.5 },
-    { id: '2-M-D', floor: 2, name: 'ห้องน้ำชาย โซน D', status: 'available', x: 52.5, y: 42.2 },
-    { id: '2-W-B', floor: 2, name: 'ห้องน้ำหญิง โซน B', status: 'available', x: 25.5, y: 69.5 },
-    { id: '2-M-B', floor: 2, name: 'ห้องน้ำชาย โซน B', status: 'available', x: 26.5, y: 62.5 },
-    { id: '2-W-A', floor: 2, name: 'ห้องน้ำหญิง โซน A', status: 'available', x: 68.5, y: 65.5 },
-    { id: '2-M-A', floor: 2, name: 'ห้องน้ำชาย โซน A', status: 'available', x: 67.0, y: 59.2 },
+    { id: '2-W-H', floor: 2, name: 'ห้องน้ำหญิง / ชั้น 2 โซน หอประชุมพะเยา', status: 'available', x: 35.2, y: 31.33 },
+    { id: '2-M-H', floor: 2, name: 'ห้องน้ำชาย / ชั้น 2 โซน หอประชุมพะเยา', status: 'available', x: 32.9, y: 30.48 },
+    { id: '2-W-D', floor: 2, name: 'ห้องน้ำหญิง / ชั้น 2 โซน D (บริเวณ ห้องงานบริการระบบเครือข่ายคอมพิวเตอร์)', status: 'available', x: 55.7, y: 36.70 },
+    { id: '2-M-D', floor: 2, name: 'ห้องน้ำชาย / ชั้น 2 โซน D (บริเวณ ห้องงานบริการระบบเครือข่ายคอมพิวเตอร์)', status: 'available', x: 53.7, y: 37.54 },
+    { id: '2-W-A', floor: 2, name: 'ห้องน้ำหญิง / ชั้น 2 โซน A', status: 'available', x: 70.0, y: 62.59 },
+    { id: '2-M-A', floor: 2, name: 'ห้องน้ำชาย / ชั้น 2 โซน A', status: 'available', x: 69.0, y: 59.60 },
+    { id: '2-W-B', floor: 2, name: 'ห้องน้ำหญิง / ชั้น 2 โซน B', status: 'available', x: 28.2, y: 67.68 },
+    { id: '2-M-B', floor: 2, name: 'ห้องน้ำชาย / ชั้น 2 โซน B', status: 'available', x: 29.0, y: 64.71 },
 
     // --- ชั้น 3 ---
-    { id: '3-W-C', floor: 3, name: 'ห้องน้ำหญิง โซน C โซนห้องปฏิบัติการระบบอัจฉริยะและหุ่นยนอัตโนมัต', status: 'available', x: 30.5, y: 28.5 },
-    { id: '3-M-C', floor: 3, name: 'ห้องน้ำชาย โซน C โซนห้องปฏิบัติการระบบอัจฉริยะและหุ่นยนอัตโนมัต', status: 'available', x: 35.0, y: 30.5 },
-    { id: '3-W-D', floor: 3, name: 'ห้องน้ำหญิงโซนงานบริการเครือข่าย ', status: 'available', x: 67.5, y: 47.5 },
-    { id: '3-M-D', floor: 3, name: 'ห้องน้ำชายโซนงานบริการเครือข่าย ', status: 'available', x: 63.5, y: 51.0 },
-    { id: '3-W-B', floor: 3, name: 'ห้องน้ำหญิง โซน B', status: 'available', x: 33.0, y: 73.0 },
-    { id: '3-M-B', floor: 3, name: 'ห้องน้ำชาย โซน B', status: 'available', x: 34.2, y: 67.5 },
-    { id: '3-W-A', floor: 3, name: 'ห้องน้ำหญิง โซน A', status: 'available', x: 70.5, y: 70.2 },
-    { id: '3-M-A', floor: 3, name: 'ห้องน้ำชาย โซน A', status: 'available', x: 69.5, y: 64.5 },
+    { id: '3-W-C', floor: 3, name: 'ห้องน้ำหญิง / ชั้น 3 โซน C (ห้องน้ำชำรุดใช้งานไม่ได้)', status: 'available', x: 33.3, y: 32.74 },
+    { id: '3-M-C', floor: 3, name: 'ห้องน้ำชาย / ชั้น 3 โซน C (ห้องน้ำชำรุดใช้งานไม่ได้)', status: 'available', x: 31.3, y: 31.75 },
+    { id: '3-W-D', floor: 3, name: 'ห้องน้ำหญิง / ชั้น 3 โซน D (บริเวณห้องCITCOMS)', status: 'available', x: 63.4, y: 40.81 },
+    { id: '3-M-D', floor: 3, name: 'ห้องน้ำชาย / ชั้น 3 โซน D (บริเวณห้องCITCOMS)', status: 'available', x: 61.5, y: 41.73 },
+    { id: '3-W-A', floor: 3, name: 'ห้องน้ำหญิง / ชั้น 3 โซน A', status: 'available', x: 74.5, y: 67.24 },
+    { id: '3-M-A', floor: 3, name: 'ห้องน้ำชาย / ชั้น 3 โซน A', status: 'available', x: 73.7, y: 64.00 },
+    { id: '3-W-B', floor: 3, name: 'ห้องน้ำหญิง / ชั้น 3 โซน B', status: 'available', x: 35.0, y: 72.42 },
+    { id: '3-M-B', floor: 3, name: 'ห้องน้ำชาย / ชั้น 3 โซน B', status: 'available', x: 35.8, y: 69.24 },
 
     // --- ชั้น 4 ---
-    { id: '4-W-C', floor: 4, name: 'ห้องน้ำหญิง โซน B', status: 'available', x: 23.0, y: 59.5 },
-    { id: '4-M-C', floor: 4, name: 'ห้องน้ำชาย โซน B', status: 'available', x: 24.8, y: 53.2 },
-    { id: '4-W-A', floor: 4, name: 'ห้องน้ำหญิง โซน A', status: 'available', x: 72.0, y: 54.0 },
-    { id: '4-M-A', floor: 4, name: 'ห้องน้ำชาย โซน A', status: 'available', x: 71.0, y: 48.2 },
+    { id: '4-W-B', floor: 4, name: 'ห้องน้ำหญิง / ชั้น 4 โซน B', status: 'available', x: 25.7, y: 58.20 },
+    { id: '4-M-B', floor: 4, name: 'ห้องน้ำชาย / ชั้น 4 โซน B', status: 'available', x: 26.6, y: 54.80 },
+    { id: '4-W-A', floor: 4, name: 'ห้องน้ำหญิง / ชั้น 4 โซน A', status: 'available', x: 73.4, y: 52.33 },
+    { id: '4-M-A', floor: 4, name: 'ห้องน้ำชาย / ชั้น 4 โซน A', status: 'available', x: 72.3, y: 48.57 },
 ];
 
 export default function RestroomStatusPage() {
@@ -82,20 +82,20 @@ export default function RestroomStatusPage() {
                         const match = result.data.find((dbItem: any) => {
                             const dbFloor = parseInt(dbItem.floor_level, 10);
                             const isSameFloor = dbFloor === localItem.floor;
-                            
+
                             // เปรียบเทียบชื่อสถานที่หรือโซน
                             const dbLocation = dbItem.location_name || '';
                             const localName = localItem.name || '';
-                            
-                            const isSameZone = 
+
+                            const isSameZone =
                                 (localName.includes('โซน A') && dbLocation.includes('โซน A')) ||
                                 (localName.includes('โซน B') && dbLocation.includes('โซน B')) ||
                                 (localName.includes('โซน D') && dbLocation.includes('โซน D')) ||
                                 (localName.includes('โซน C') && dbLocation.includes('โซน C')) ||
                                 (localName.includes('หอประชุม') && dbLocation.includes('หอประชุม')) ||
                                 (localName.includes('งานบริการเครือข่าย') && dbLocation.includes('งานบริการเครือข่าย'));
-                            
-                            const isSameGender = 
+
+                            const isSameGender =
                                 (localName.includes('ชาย') && dbLocation.includes('ชาย')) ||
                                 (localName.includes('หญิง') && dbLocation.includes('หญิง'));
 

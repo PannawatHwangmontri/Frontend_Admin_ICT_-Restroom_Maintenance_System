@@ -8,6 +8,7 @@ import {
     Clock,
     Users,
     Menu,
+    Bell,
     User,
     Droplets,
     Zap,
@@ -32,8 +33,125 @@ import {
     Layers
 } from 'lucide-react';
 
-// กำหนดหมวดหมู่หลักสำหรับสรุปผล
-const defaultCategories = ['ระบบน้ำ', 'สุขภัณฑ์', 'ระบบไฟฟ้า'];
+// ข้อมูลจำลองรายการแจ้งซ่อมปัจจุบัน
+const initialComplaints = [
+    {
+        id: '1',
+        code: '#AW1-01',
+        date: '2026-07-20',
+        displayDate: '20/07/2026 10:00 น.',
+        location: 'ห้องน้ำหญิง ชั้น 1 โซน A',
+        category: 'ระบบน้ำ',
+        problem: 'สายฉีดชำระเสีย 3 ชุด',
+        severity: 'ปกติ',
+        status: 'รับเรื่อง',
+        repeatCount: 5,
+        imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
+        note: ''
+    },
+    {
+        id: '2',
+        code: '#AW1-02',
+        date: '2026-07-20',
+        displayDate: '20/07/2026 10:30 น.',
+        location: 'ห้องน้ำหญิง ชั้น 2 โซน A',
+        category: 'ระบบน้ำ',
+        problem: 'สายฉีดชำระเสีย 3 ชุด',
+        severity: 'ปกติ',
+        status: 'รอรับเรื่อง',
+        repeatCount: 3,
+        imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
+        note: ''
+    },
+    {
+        id: '3',
+        code: '#AM1-03',
+        date: '2026-07-20',
+        displayDate: '20/07/2026 11:15 น.',
+        location: 'ห้องน้ำชาย ชั้น 1 โซน A',
+        category: 'ระบบน้ำ',
+        problem: 'ท่อน้ำรั่ว 3 จุด',
+        severity: 'เร่งด่วน',
+        status: 'รอรับเรื่อง',
+        repeatCount: 2,
+        imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
+        note: ''
+    },
+    {
+        id: '4',
+        code: '#ES1-04',
+        date: '2026-07-19',
+        displayDate: '19/07/2026 14:20 น.',
+        location: 'ห้องน้ำชาย ชั้น 2 โซน B',
+        category: 'ระบบไฟฟ้า',
+        problem: 'หลอดไฟเสีย 3 หลอด',
+        severity: 'ปกติ',
+        status: 'รับเรื่อง',
+        repeatCount: 1,
+        imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
+        note: ''
+    },
+    {
+        id: '5',
+        code: '#ST2-05',
+        date: '2026-07-18',
+        displayDate: '18/07/2026 09:00 น.',
+        location: 'ห้องน้ำหญิง ชั้น 3 โซน A',
+        category: 'สุขภัณฑ์',
+        problem: 'โถส้วมชำรุด 3 ชุด',
+        severity: 'เร่งด่วน',
+        status: 'ไม่รับเรื่อง',
+        repeatCount: 1,
+        imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
+        note: 'ข้อมูลซ้ำซ้อนกับเคส #ST2-01 ที่กำลังดำเนินการอยู่'
+    }
+];
+
+// ข้อมูลจำลองรายการแจ้งซ่อมย้อนหลัง (เฉพาะที่มีสถานะ "รับเรื่อง")
+const historicalComplaints = [
+    { id: 'h24-1', code: '#AW24-01', year: 2024, date: '2024-03-15', displayDate: '15/03/2024 09:00 น.', location: 'ห้องน้ำชาย ชั้น 1', category: 'ระบบน้ำ', problem: 'สายฉีดชำระเสีย 3 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h24-2', code: '#AW24-02', year: 2024, date: '2024-05-10', displayDate: '10/05/2024 11:30 น.', location: 'ห้องน้ำหญิง ชั้น 2', category: 'ระบบน้ำ', problem: 'ก๊อกน้ำอ่างล้างมือเสีย 4 ชุด', severity: 'เร่งด่วน', status: 'รับเรื่อง' },
+    { id: 'h24-3', code: '#ES24-01', year: 2024, date: '2024-07-22', displayDate: '22/07/2024 14:00 น.', location: 'ห้องน้ำชาย ชั้น 3', category: 'ระบบไฟฟ้า', problem: 'หลอดไฟเสีย 5 หลอด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h24-4', code: '#ST24-01', year: 2024, date: '2024-10-05', displayDate: '05/10/2024 16:45 น.', location: 'ห้องน้ำหญิง ชั้น 1', category: 'สุขภัณฑ์', problem: 'อ่างล้างมือชำรุด 5 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h25-1', code: '#AW25-01', year: 2025, date: '2025-01-14', displayDate: '14/01/2025 08:30 น.', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', category: 'ระบบน้ำ', problem: 'ท่อน้ำรั่ว 3 จุด', severity: 'เร่งด่วน', status: 'รับเรื่อง' },
+    { id: 'h25-2', code: '#AW25-02', year: 2025, date: '2025-03-20', displayDate: '20/03/2025 10:15 น.', location: 'ห้องน้ำชาย ชั้น 2 โซน B', category: 'ระบบน้ำ', problem: 'สายฉีดชำระเสีย 4 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h25-3', code: '#AW25-03', year: 2025, date: '2025-06-12', displayDate: '12/06/2025 13:00 น.', location: 'ห้องน้ำหญิง ชั้น 3 โซน A', category: 'ระบบน้ำ', problem: 'ก๊อกน้ำอ่างล้างมือเสีย 6 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h25-4', code: '#ST25-01', year: 2025, date: '2025-08-18', displayDate: '18/08/2025 15:40 น.', location: 'ห้องน้ำชาย ชั้น 1 โซน A', category: 'สุขภัณฑ์', problem: 'โถส้วมชำรุด 4 ชุด', severity: 'เร่งด่วน', status: 'รับเรื่อง' },
+    { id: 'h25-5', code: '#ES25-01', year: 2025, date: '2025-11-30', displayDate: '30/11/2025 09:20 น.', location: 'ห้องน้ำหญิง ชั้น 2 โซน B', category: 'ระบบไฟฟ้า', problem: 'หลอดไฟเสีย 6 หลอด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h26-1', code: '#AW26-01', year: 2026, date: '2026-02-05', displayDate: '05/02/2026 10:00 น.', location: 'ห้องน้ำชาย ชั้น 2 โซน A', category: 'ระบบน้ำ', problem: 'สายฉีดชำระเสีย 3 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h26-2', code: '#ES26-01', year: 2026, date: '2026-04-12', displayDate: '12/04/2026 11:30 น.', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', category: 'ระบบไฟฟ้า', problem: 'หลอดไฟเสีย 3 หลอด', severity: 'ปกติ', status: 'รับเรื่อง' },
+    { id: 'h26-3', code: '#ST26-01', year: 2026, date: '2026-06-25', displayDate: '25/06/2026 14:10 น.', location: 'ห้องน้ำชาย ชั้น 3 โซน B', category: 'สุขภัณฑ์', problem: 'ฝารองนั่งชำรุด 2 ชุด', severity: 'ปกติ', status: 'รับเรื่อง' }
+];
+
+const yearlyComparisonData = [
+    {
+        year: 2024,
+        totalRepairs: 42,
+        categories: [
+            { name: 'ระบบน้ำ', count: 20 },
+            { name: 'สุขภัณฑ์', count: 12 },
+            { name: 'ระบบไฟฟ้า', count: 10 }
+        ]
+    },
+    {
+        year: 2025,
+        totalRepairs: 68,
+        categories: [
+            { name: 'ระบบน้ำ', count: 35 },
+            { name: 'สุขภัณฑ์', count: 18 },
+            { name: 'ระบบไฟฟ้า', count: 15 }
+        ]
+    },
+    {
+        year: 2026,
+        totalRepairs: 29,
+        categories: [
+            { name: 'ระบบน้ำ', count: 14 },
+            { name: 'สุขภัณฑ์', count: 8 },
+            { name: 'ระบบไฟฟ้า', count: 7 }
+        ]
+    }
+];
 
 const categorySummary = [
     {
@@ -74,12 +192,12 @@ const categorySummary = [
     },
 ];
 
-// ปรับให้ป้ายสถานะมีความกว้าง (w-[90px]) และการตกแต่งที่เหมือนกัน
-const renderStatusBadge = (status: string) => {
-    if (status === 'แจ้งแล้ว') {
+// ปรับแต่งสถานะให้มี 3 สถานะ: รอรับเรื่อง (สีเหลือง), รับเรื่อง/แจ้งแล้ว (สีเขียว), ไม่รับเรื่อง (สีแดง)
+const renderStatusBadge = (status) => {
+    if (status === 'รับเรื่อง' || status === 'แจ้งแล้ว') {
         return (
-            <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] text-center shadow-xs">
-                แจ้งแล้ว
+            <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] border border-[#A7F3D0] text-center shadow-xs">
+                รับเรื่อง
             </span>
         );
     }
@@ -90,109 +208,29 @@ const renderStatusBadge = (status: string) => {
             </span>
         );
     }
+    // รอรับเรื่อง (สีเหลือง)
     return (
-        <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 text-center shadow-xs">
-            {status}
+        <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A] text-center shadow-xs">
+            รอรับเรื่อง
         </span>
     );
 };
-
-interface ComplaintItem {
-    id: string;
-    rawId: number | string;
-    code: string;
-    date: string;
-    displayDate: string;
-    year: number;
-    location: string;
-    category: string;
-    problem: string;
-    severity: string;
-    status: string;
-    repeatCount: number;
-    imageUrl: string;
-    note: string;
-    lineUserId?: string | null;
-    repeatRejectNote?: string;
-}
 
 export default function ComplaintsPage() {
     const openMobileMenu = useOpenMobileMenu();
 
     // State จัดการข้อมูลรายการแจ้งซ่อม
-    const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    // ดึงข้อมูลจาก Backend API (/api/requests)
-    const fetchComplaints = async () => {
-        try {
-            setIsLoading(true);
-            const res = await fetch('/api/requests');
-            const result = await res.json();
-
-            if (result.success && Array.isArray(result.data)) {
-                // แปลงข้อมูลจาก Supabase maintenance_requests ให้ตรงกับฟิลด์ที่ใช้ใน UI
-                const mappedData = result.data.map((item: any) => {
-                    const reportedDate = item.reported_at ? new Date(item.reported_at) : new Date();
-                    const formattedDate = reportedDate.toISOString().split('T')[0];
-                    const displayDateStr = reportedDate.toLocaleString('th-TH', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    }) + ' น.';
-
-                    // สกัดหมวดหมู่เบื้องต้นจาก issue_summary หากไม่ได้ระบุ
-                    let category = 'ระบบน้ำ';
-                    const summary = item.issue_summary || '';
-                    if (summary.includes('ไฟ') || summary.includes('หลอดไฟ') || summary.includes('ปลั๊ก')) {
-                        category = 'ระบบไฟฟ้า';
-                    } else if (summary.includes('ส้วม') || summary.includes('โถ') || summary.includes('อ่าง') || summary.includes('กระจก') || summary.includes('ประตู')) {
-                        category = 'สุขภัณฑ์';
-                    }
-
-                    return {
-                        id: String(item.id),
-                        rawId: item.id,
-                        code: item.ticket_number || `#REQ-${item.id}`,
-                        date: formattedDate,
-                        displayDate: displayDateStr,
-                        year: reportedDate.getFullYear(),
-                        location: item.location || 'ไม่ระบุสถานที่',
-                        category: category,
-                        problem: item.issue_summary || 'ไม่มีรายละเอียดปัญหา',
-                        severity: item.priority || 'ปกติ',
-                        status: item.status || 'รอรับเรื่อง',
-                        repeatCount: item.repeat_count || 1,
-                        imageUrl: item.image_url || '/photo/ปัญหาสายชำระชำรุด.jpg',
-                        note: item.remark || '',
-                        lineUserId: item.line_user_id || null,
-                    };
-                });
-                setComplaints(mappedData);
-            }
-        } catch (error) {
-            console.error('Failed to fetch requests:', error);
-            showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลจากเซิร์ฟเวอร์');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    React.useEffect(() => {
-        fetchComplaints();
-    }, []);
+    const [complaints, setComplaints] = useState(initialComplaints);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     // State จัดการตารางที่กำลังเลือกโหมดลบ ('latest' หรือ 'all') เพื่อให้แยกกันแสดงผล UI
-    const [deleteModeTable, setDeleteModeTable] = useState<string | null>(null);
+    const [deleteModeTable, setDeleteModeTable] = useState(null);
 
-    // State จัดการ Dropdown ยุบ/คลี่ตาราง (กำหนดให้เปิดค้างไว้เพื่อแสดงข้อมูลจริงทันที)
-    const [isLatestOpen, setIsLatestOpen] = useState(true);
-    const [isAllOpen, setIsAllOpen] = useState(true);
+    // State จัดการ Dropdown ยุบ/คลี่ตาราง
+    const [isLatestOpen, setIsLatestOpen] = useState(false);
+    const [isAllOpen, setIsAllOpen] = useState(false);
 
-    const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
+    const [expandedGroupIds, setExpandedGroupIds] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -202,15 +240,18 @@ export default function ComplaintsPage() {
     const [exportOption, setExportOption] = useState('complaints');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-    const [activeComplaint, setActiveComplaint] = useState<ComplaintItem | null>(null);
+    const [activeComplaint, setActiveComplaint] = useState(null);
     const [remarkNote, setRemarkNote] = useState('');
     const [viewImageModal, setViewImageModal] = useState(false);
-    const [categoryModalData, setCategoryModalData] = useState<any>(null);
-    const [selectedHistoryYear, setSelectedHistoryYear] = useState<number | null>(null);
+    const [categoryModalData, setCategoryModalData] = useState(null);
+    const [selectedHistoryYear, setSelectedHistoryYear] = useState(null);
+
+    // State สำหรับการเลือกจำนวนปีย้อนหลัง (ไม่รวมปีปัจจุบัน)
+    const [yearsBack, setYearsBack] = useState(3);
 
     const [autoRejectModalOpen, setAutoRejectModalOpen] = useState(false);
     const [autoRejectNote, setAutoRejectNote] = useState('');
-    const [pendingAcceptComplaint, setPendingAcceptComplaint] = useState<ComplaintItem | null>(null);
+    const [pendingAcceptComplaint, setPendingAcceptComplaint] = useState(null);
 
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(3);
@@ -220,7 +261,7 @@ export default function ComplaintsPage() {
         { id: 3, title: 'ตรวจพบเรื่องแจ้งซ้ำ', desc: 'โถส้วมชำรุด ห้องน้ำหญิง ชั้น 1 (4 ครั้ง)', time: '1 ชั่วโมงที่แล้ว' },
     ];
 
-    const showToast = (msg: string) => {
+    const showToast = (msg) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(''), 3500);
     };
@@ -237,50 +278,55 @@ export default function ComplaintsPage() {
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [complaints, selectedCategory, startDate, endDate]);
 
-    // State สำหรับระบุจำนวนปีย้อนหลัง (ไม่รวมปีปัจจุบัน) ค่าเริ่มต้น 3 ปี
-    const [yearsBackInput, setYearsBackInput] = useState<number | string>(3);
-
-    const yearlyComparisonData = useMemo(() => {
-        const yearsMap: { [year: number]: { [cat: string]: number } } = {};
-
-        complaints.forEach(item => {
-            const y = item.year || new Date().getFullYear();
-            if (!yearsMap[y]) {
-                yearsMap[y] = { 'ระบบน้ำ': 0, 'สุขภัณฑ์': 0, 'ระบบไฟฟ้า': 0 };
-            }
-            const cat = defaultCategories.includes(item.category) ? item.category : 'ระบบน้ำ';
-            yearsMap[y][cat] = (yearsMap[y][cat] || 0) + 1;
-        });
-
+    // สร้างข้อมูลการเปรียบเทียบย้อนหลังแบบ Dynamic ตามจำนวนปีที่เลือก (ไม่รวมปีปัจจุบัน)
+    const displayedYearlyData = useMemo(() => {
         const currentYear = new Date().getFullYear();
-        const numYearsBack = Math.max(1, Number(yearsBackInput) || 1);
-        
-        // สร้างเฉพาะปีย้อนหลัง (ไม่รวมปีปัจจุบัน) เช่น ถ้ากรอก 3 และปีปัจจุบันคือ 2026 -> 2023, 2024, 2025
-        const yearsToGenerate: number[] = [];
-        for (let i = numYearsBack; i >= 1; i--) {
-            yearsToGenerate.push(currentYear - i);
+        const years = [];
+        const count = Math.max(1, yearsBack);
+        const startYear = currentYear - count;
+        const endYear = currentYear - 1;
+
+        for (let y = startYear; y <= endYear; y++) {
+            const found = yearlyComparisonData.find(d => d.year === y);
+            if (found) {
+                years.push(found);
+            } else {
+                const yearComplaints = historicalComplaints.filter(item => item.year === y);
+                const waterCount = yearComplaints.filter(c => c.category === 'ระบบน้ำ').length;
+                const sanitaryCount = yearComplaints.filter(c => c.category === 'สุขภัณฑ์').length;
+                const electricCount = yearComplaints.filter(c => c.category === 'ระบบไฟฟ้า').length;
+
+                years.push({
+                    year: y,
+                    totalRepairs: yearComplaints.length,
+                    categories: [
+                        { name: 'ระบบน้ำ', count: waterCount },
+                        { name: 'สุขภัณฑ์', count: sanitaryCount },
+                        { name: 'ระบบไฟฟ้า', count: electricCount }
+                    ]
+                });
+            }
         }
-
-        const sortedYears = Array.from(new Set(yearsToGenerate)).sort((a, b) => a - b);
-
-        return sortedYears.map(y => {
-            const catData = yearsMap[y] || { 'ระบบน้ำ': 0, 'สุขภัณฑ์': 0, 'ระบบไฟฟ้า': 0 };
-            const totalRepairs = Object.values(catData).reduce((a, b) => a + b, 0);
-            return {
-                year: y,
-                totalRepairs,
-                categories: Object.entries(catData).map(([name, count]) => ({ name, count }))
-            };
-        });
-    }, [complaints, yearsBackInput]);
+        return years;
+    }, [yearsBack]);
 
     const historicalAnalysis = useMemo(() => {
-        let maxYearObj = yearlyComparisonData[0] || { year: new Date().getFullYear(), totalRepairs: 0, categories: [] };
-        let maxSystemYear: number | string = new Date().getFullYear();
-        let maxSystemName = 'ไม่มีข้อมูล';
+        if (!displayedYearlyData.length) {
+            return {
+                maxYear: '-',
+                maxYearCount: 0,
+                maxSystemYear: '-',
+                maxSystemName: '',
+                maxSystemCount: 0
+            };
+        }
+
+        let maxYearObj = displayedYearlyData[0];
+        let maxSystemYear = displayedYearlyData[0].year;
+        let maxSystemName = '';
         let maxSystemCount = 0;
 
-        yearlyComparisonData.forEach(y => {
+        displayedYearlyData.forEach(y => {
             if (y.totalRepairs > maxYearObj.totalRepairs) {
                 maxYearObj = y;
             }
@@ -293,27 +339,32 @@ export default function ComplaintsPage() {
             });
         });
 
+        const currentYear = new Date().getFullYear();
+
         return {
             maxYear: maxYearObj.year,
             maxYearCount: maxYearObj.totalRepairs,
-            maxSystemYear,
-            maxSystemName,
+            maxSystemYear: maxSystemCount > 0 ? maxSystemYear : `${currentYear} (ไม่มีข้อมูล)`,
+            maxSystemName: maxSystemCount > 0 ? maxSystemName : '',
             maxSystemCount
         };
-    }, [yearlyComparisonData]);
+    }, [displayedYearlyData]);
 
+    // แก้ไข Logic การสร้าง subItems: ไม่นำรายการแรก (i = 0) มาแสดงใน subItems ให้แสดงเฉพาะ i = 1 เป็นต้นไป
     const groupedComplaintsByRepeat = useMemo(() => {
         const sorted = [...filteredComplaints].sort((a, b) => b.repeatCount - a.repeatCount);
-        let globalIndex = 1;
 
         return sorted.map((item) => {
             const prefixMatch = item.code.match(/^(#[A-Za-z0-9]+)-/);
             const prefix = prefixMatch ? prefixMatch[1] : '#AW1';
 
+            const primaryNumber = parseInt(item.code.split('-')[1] || '1', 10);
             const subItems = [];
-            for (let i = 0; i < item.repeatCount; i++) {
-                const codeNumber = String(globalIndex).padStart(2, '0');
-                const derivedStatus = (item.status === 'แจ้งแล้ว' && i > 0) ? 'ไม่รับเรื่อง' : item.status;
+
+            // เริ่มวนลูป i = 1 เพื่อไม่ให้แสดงรายการแรกซ้ำอีกรอบ
+            for (let i = 1; i < item.repeatCount; i++) {
+                const codeNumber = String(primaryNumber + i).padStart(2, '0');
+                const derivedStatus = (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว') ? 'ไม่รับเรื่อง' : item.status;
 
                 subItems.push({
                     ...item,
@@ -321,179 +372,39 @@ export default function ComplaintsPage() {
                     code: `${prefix}-${codeNumber}`,
                     repeatIndex: i + 1,
                     status: derivedStatus,
-                    note: (item.status === 'แจ้งแล้ว' && i > 0) ? (item.repeatRejectNote || 'ข้อมูลซ้ำซ้อนกับรายการหลักที่รับเรื่องแล้ว') : item.note
+                    note: (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว')
+                        ? (item.repeatRejectNote || 'ข้อมูลซ้ำซ้อนกับรายการหลักที่รับเรื่องแล้ว')
+                        : item.note
                 });
-                globalIndex++;
             }
 
             return {
                 ...item,
-                primaryCode: subItems[0].code,
+                primaryCode: item.code,
                 subItems: subItems
             };
         });
     }, [filteredComplaints]);
 
-    const toggleGroupExpand = (groupId: string) => {
+    const toggleGroupExpand = (groupId) => {
         setExpandedGroupIds(prev =>
             prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
         );
     };
 
-    const dynamicCategorySummary = useMemo(() => {
-        const categoryMap: {
-            [title: string]: {
-                title: string;
-                icon: any;
-                color: string;
-                bgColor: string;
-                borderColor: string;
-                itemsMap: { [problem: string]: number };
-            }
-        } = {
-            'ระบบน้ำ': {
-                title: 'ระบบน้ำ',
-                icon: Droplets,
-                color: 'text-blue-600',
-                bgColor: 'bg-blue-50',
-                borderColor: 'border-blue-100',
-                itemsMap: {},
-            },
-            'สุขภัณฑ์': {
-                title: 'สุขภัณฑ์',
-                icon: Wrench,
-                color: 'text-purple-600',
-                bgColor: 'bg-[#FDF4FF]',
-                borderColor: 'border-purple-100',
-                itemsMap: {},
-            },
-            'ระบบไฟฟ้า': {
-                title: 'ระบบไฟฟ้า',
-                icon: Zap,
-                color: 'text-amber-600',
-                bgColor: 'bg-amber-50',
-                borderColor: 'border-amber-100',
-                itemsMap: {},
-            },
-        };
-
-        filteredComplaints.forEach((c) => {
-            const catKey = defaultCategories.includes(c.category) ? c.category : 'ระบบน้ำ';
-            const problemName = c.problem ? c.problem.trim() : 'ไม่มีรายละเอียดปัญหา';
-            if (!categoryMap[catKey].itemsMap[problemName]) {
-                categoryMap[catKey].itemsMap[problemName] = 0;
-            }
-            categoryMap[catKey].itemsMap[problemName] += 1;
-        });
-
-        return Object.values(categoryMap).map((cat) => {
-            const items = Object.entries(cat.itemsMap).map(([name, count]) => ({
-                name,
-                count,
-            }));
-            return {
-                title: cat.title,
-                icon: cat.icon,
-                color: cat.color,
-                bgColor: cat.bgColor,
-                borderColor: cat.borderColor,
-                items: items.length > 0 ? items : [{ name: 'ไม่มีเรื่องแจ้งซ่อมในหมวดนี้', count: 0 }],
-            };
-        });
-    }, [filteredComplaints]);
-
-    // AI Insight คำนวณจากข้อมูลจริง (rule-based analysis)
-    const aiInsight = useMemo(() => {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        // ใช้ filteredComplaints ของเดือนปัจจุบัน
-        const monthComplaints = complaints.filter(c => {
-            const d = new Date(c.date || Date.now());
-            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-        });
-
-        const total = monthComplaints.length;
-
-        // วิเคราะห์หมวดหมู่
-        const catCount: { [key: string]: number } = { 'ระบบน้ำ': 0, 'สุขภัณฑ์': 0, 'ระบบไฟฟ้า': 0 };
-        monthComplaints.forEach(c => {
-            if (defaultCategories.includes(c.category)) {
-                catCount[c.category] = (catCount[c.category] || 0) + 1;
-            } else {
-                catCount['ระบบน้ำ']++;
-            }
-        });
-
-        const topCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])[0];
-        const topCatName = topCat ? topCat[0] : 'ระบบน้ำ';
-        const topCatCount = topCat ? topCat[1] : 0;
-        const topCatPct = total > 0 ? Math.round((topCatCount / total) * 100) : 0;
-
-        // วิเคราะห์สถานที่
-        const locCount: { [key: string]: number } = {};
-        monthComplaints.forEach(c => {
-            const loc = c.location || 'ไม่ระบุสถานที่';
-            locCount[loc] = (locCount[loc] || 0) + 1;
-        });
-        const topLoc = Object.entries(locCount).sort((a, b) => b[1] - a[1])[0];
-        const topLocName = topLoc ? topLoc[0] : null;
-        const topLocCount = topLoc ? topLoc[1] : 0;
-
-        // รายการรอรับเรื่อง
-        const pendingCount = monthComplaints.filter(c => c.status === 'รอรับเรื่อง').length;
-        // อัตราการรับเรื่อง
-        const acceptedCount = monthComplaints.filter(c => ['แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(c.status)).length;
-        const acceptRate = total > 0 ? Math.round((acceptedCount / total) * 100) : 0;
-
-        // รายการแจ้งซ้ำ (สถานที่+ปัญหาเดิม)
-        const dupGroups = Object.values(
-            monthComplaints.reduce((acc: { [k: string]: any[] }, c) => {
-                const k = `${c.location || ''}-${c.problem || ''}`;
-                if (!acc[k]) acc[k] = [];
-                acc[k].push(c);
-                return acc;
-            }, {})
-        ).filter(g => g.length > 2);
-
-        // สร้างข้อเสนอแนะ (rule-based)
-        const suggestions: string[] = [];
-
-        if (topCatCount > 0) {
-            suggestions.push(`ควรตรวจเช็คและบำรุงรักษาอุปกรณ์ **${topCatName}** เชิงป้องกัน เนื่องจากมีการแจ้งซ่อมสูงสุด ${topCatCount} ครั้งในเดือนนี้ (${topCatPct}% ของทั้งหมด)`);
-        }
-        if (topLocName && topLocCount >= 2) {
-            suggestions.push(`**${topLocName}** มีปัญหาซ้ำ ${topLocCount} รายการ ควรพิจารณาตรวจสอบโครงสร้างระบบให้ครอบคลุม`);
-        }
-        if (pendingCount > 0) {
-            suggestions.push(`มีรายการ **รอรับเรื่อง ${pendingCount} รายการ** ในเดือนนี้ ควรดำเนินการให้ครบโดยเร็ว`);
-        }
-        if (dupGroups.length > 0) {
-            suggestions.push(`ตรวจพบรายการแจ้งซ้ำ ${dupGroups.length} กลุ่ม ควรพิจารณาซ่อมแบบถาวรเพื่อลดการแจ้งซ้ำ`);
-        }
-        if (catCount['ระบบไฟฟ้า'] >= 3) {
-            suggestions.push(`หลอดไฟ/ระบบไฟฟ้ามีปัญหา ${catCount['ระบบไฟฟ้า']} ครั้ง ควรพิจารณาเปลี่ยนยกเซ็ตในโซนที่มีปัญหาซ้ำ`);
-        }
-        if (suggestions.length === 0) {
-            suggestions.push('สถานะโดยรวมของเดือนนี้อยู่ในเกณฑ์ปกติ ยังไม่พบจุดเสี่ยงที่ต้องดำเนินการเร่งด่วน');
-        }
-
-        // สร้างข้อความสรุป
-        let summaryText = '';
-        if (total === 0) {
-            summaryText = 'ยังไม่มีการแจ้งซ่อมในเดือนนี้ (ตามตัวกรองที่เลือก)';
-        } else {
-            summaryText = `เดือนนี้มีการแจ้งซ่อมทั้งหมด ${total} รายการ`;
-            if (topLocName && topLocCount >= 2) {
-                summaryText += ` โดยสถานที่ที่มีปัญหาบ่อยที่สุดคือ ${topLocName} (${topLocCount} รายการ)`;
-            }
-            summaryText += ` หมวดหมู่ที่มีปัญหามากที่สุดคือ ${topCatName} (${topCatPct}%)`;
-            summaryText += ` อัตราการรับเรื่อง ${acceptRate}%`;
-        }
-
-        return { summaryText, suggestions, total };
-    }, [complaints]);
+    const filteredCategorySummary = useMemo(() => {
+        return categorySummary.map(cat => ({
+            ...cat,
+            items: cat.items.map(item => {
+                const cleanItemName = item.name.replace(/\s\d+\s(ชุด|จุด|หลอด|ดวง)/, '').trim();
+                const matchCount = filteredComplaints.filter(c => c.category === cat.title && c.problem.includes(cleanItemName)).length;
+                return {
+                    ...item,
+                    count: (startDate || endDate) ? matchCount : item.count
+                };
+            })
+        }));
+    }, [filteredComplaints, startDate, endDate]);
 
     const handleSelectAll = () => {
         if (selectedIds.length === filteredComplaints.length && filteredComplaints.length > 0) {
@@ -503,7 +414,7 @@ export default function ComplaintsPage() {
         }
     };
 
-    const handleSelectRow = (id: string) => {
+    const handleSelectRow = (id) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
         );
@@ -517,9 +428,9 @@ export default function ComplaintsPage() {
         showToast('ลบข้อมูลเรียบร้อยแล้ว');
     };
 
-    const exportToCSV = (type: string) => {
-        let headers: string[] = [];
-        let rows: (string | number)[][] = [];
+    const exportToCSV = (type) => {
+        let headers = [];
+        let rows = [];
         let filename = `export_report_${new Date().toISOString().slice(0, 10)}.csv`;
 
         if (type === 'complaints') {
@@ -538,7 +449,7 @@ export default function ComplaintsPage() {
         } else if (type === 'category') {
             filename = `category_summary_${new Date().toISOString().slice(0, 10)}.csv`;
             headers = ['หมวดหมู่', 'รายการความเสียหาย', 'จำนวน (รายการ)'];
-            dynamicCategorySummary.forEach(cat => {
+            filteredCategorySummary.forEach(cat => {
                 cat.items.forEach(item => {
                     rows.push([`"${cat.title}"`, `"${item.name}"`, `"${item.count}"`]);
                 });
@@ -572,35 +483,7 @@ export default function ComplaintsPage() {
         showToast(`ส่งออกไฟล์ CSV เรียบร้อยแล้ว`);
     };
 
-    const updateComplaintStatusAPI = async (id: string, newStatus: string, remarkText?: string) => {
-        try {
-            const res = await fetch(`/api/requests/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: newStatus,
-                    remark: remarkText || '',
-                    notification_message: `สถานะรายการแจ้งซ่อม #${id} ถูกเปลี่ยนเป็น: ${newStatus}${remarkText ? ` (${remarkText})` : ''}`
-                })
-            });
-            const result = await res.json();
-            if (result.success) {
-                if (result.line_notified) {
-                    showToast('อัปเดตสถานะและส่งแจ้งเตือนทาง LINE เรียบร้อยแล้ว');
-                } else {
-                    showToast('อัปเดตสถานะลงฐานข้อมูลเรียบร้อยแล้ว');
-                }
-                fetchComplaints();
-            } else {
-                showToast(result.message || 'ไม่สามารถอัปเดตสถานะได้');
-            }
-        } catch (err) {
-            console.error('Failed to update status:', err);
-            showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-        }
-    };
-
-    const handleAcceptMain = async () => {
+    const handleAcceptMain = () => {
         if (!activeComplaint) return;
 
         if (activeComplaint.repeatCount > 1) {
@@ -608,21 +491,36 @@ export default function ComplaintsPage() {
             setAutoRejectNote(`ข้อมูลซ้ำซ้อนกับรายการที่ 1 (${activeComplaint.code}) ที่รับเรื่องแล้ว`);
             setAutoRejectModalOpen(true);
         } else {
-            await updateComplaintStatusAPI(activeComplaint.id, 'แจ้งแล้ว');
+            setComplaints((prev) =>
+                prev.map((item) =>
+                    item.id === activeComplaint.id
+                        ? { ...item, status: 'รับเรื่อง', note: '' }
+                        : item
+                )
+            );
+            showToast('รับเรื่องเรียบร้อยแล้ว');
             setActiveComplaint(null);
             setRemarkNote('');
         }
     };
 
-    const confirmAcceptWithAutoReject = async () => {
+    const confirmAcceptWithAutoReject = () => {
         if (!pendingAcceptComplaint) return;
 
-        await updateComplaintStatusAPI(
-            pendingAcceptComplaint.id,
-            'แจ้งแล้ว',
-            autoRejectNote || 'ข้อมูลซ้ำซ้อนกับรายการแรกที่รับเรื่องแล้ว'
+        setComplaints((prev) =>
+            prev.map((item) => {
+                if (item.id === pendingAcceptComplaint.id) {
+                    return {
+                        ...item,
+                        status: 'รับเรื่อง',
+                        repeatRejectNote: autoRejectNote || 'ข้อมูลซ้ำซ้อนกับรายการแรกที่รับเรื่องแล้ว'
+                    };
+                }
+                return item;
+            })
         );
 
+        showToast(`รับเรื่องรายการที่ 1 เรียบร้อย รายการที่เหลือถูกปรับเป็นไม่รับเรื่องอัตโนมัติ`);
         setAutoRejectModalOpen(false);
         setActiveComplaint(null);
         setPendingAcceptComplaint(null);
@@ -630,12 +528,26 @@ export default function ComplaintsPage() {
         setAutoRejectNote('');
     };
 
-    const handleRejectMain = async () => {
+    const handleRejectMain = () => {
         if (!activeComplaint) return;
 
         const noteToSave = remarkNote.trim() || 'ไม่รับเรื่อง (ข้อมูลซ้ำซ้อน/รายละเอียดไม่ชัดเจน)';
-        await updateComplaintStatusAPI(activeComplaint.id, 'ไม่รับเรื่อง', noteToSave);
 
+        setComplaints((prev) =>
+            prev.map((item) => {
+                if (item.id === activeComplaint.id) {
+                    return {
+                        ...item,
+                        status: 'ไม่รับเรื่อง',
+                        note: noteToSave,
+                        repeatRejectNote: noteToSave
+                    };
+                }
+                return item;
+            })
+        );
+
+        showToast('บันทึกการไม่รับเรื่องเรียบร้อยแล้ว');
         setActiveComplaint(null);
         setRemarkNote('');
     };
@@ -666,6 +578,49 @@ export default function ComplaintsPage() {
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0 relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className="p-1 hover:opacity-80 transition-opacity relative flex items-center justify-center"
+                            title="การแจ้งเตือน"
+                        >
+                            <Bell className="w-6 h-6 fill-amber-400 text-amber-400" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {showNotifications && (
+                            <div className="absolute right-0 top-11 w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-purple-100 z-50 p-4 animate-in fade-in zoom-in-95 duration-150">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="font-bold text-sm text-gray-900">การแจ้งเตือน</h4>
+                                    {unreadCount > 0 && (
+                                        <button
+                                            onClick={() => setUnreadCount(0)}
+                                            className="text-xs text-[#7E22CE] hover:underline font-bold"
+                                        >
+                                            อ่านทั้งหมด
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                    {notifications.map((n) => (
+                                        <div
+                                            key={n.id}
+                                            className="p-3 rounded-xl bg-[#FBF8FF] hover:bg-purple-50/70 border border-purple-100/70 text-xs transition-colors"
+                                        >
+                                            <div className="flex justify-between font-bold mb-1">
+                                                <span className="text-gray-900 font-bold">{n.title}</span>
+                                                <span className="text-[10px] text-gray-400 font-normal">{n.time}</span>
+                                            </div>
+                                            <p className="text-gray-600 leading-tight">{n.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <span className="text-sm font-bold text-gray-900 hidden sm:inline">Admin</span>
                         <div className="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center text-black shadow-xs overflow-hidden shrink-0">
                             <User className="w-5 h-5 fill-black text-black" />
@@ -1015,6 +970,7 @@ export default function ComplaintsPage() {
                                                         </td>
                                                     </tr>
 
+                                                    {/* แสดงผลเฉพาะรายการซ้ำตั้งแต่ลำดับที่ 2 เป็นต้นไป (#AW1-02, #AW1-03, ...) */}
                                                     {isExpanded && group.subItems.map((subItem) => (
                                                         <tr key={subItem.uniqueId} className="bg-purple-50/30 text-gray-600 border-l-4 border-l-purple-600">
                                                             {deleteModeTable === 'all' && <td></td>}
@@ -1079,9 +1035,9 @@ export default function ComplaintsPage() {
                             </div>
 
                             <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-purple-200">
-                                {dynamicCategorySummary.map((cat, idx) => {
+                                {filteredCategorySummary.map((cat, idx) => {
                                     const CatIcon = cat.icon;
-                                    const fullSummaryText = cat.items.filter(i => i.count > 0).map(i => `${i.name} (${i.count} รายการ)`).join(' , ') || 'ไม่มีรายการแจ้งซ่อม';
+                                    const fullSummaryText = cat.items.map(i => i.name).join(' , ');
 
                                     return (
                                         <div key={idx} className={`p-3.5 rounded-xl border ${cat.borderColor} ${cat.bgColor} transition-all`}>
@@ -1128,7 +1084,7 @@ export default function ComplaintsPage() {
                         </div>
                     </div>
 
-                    {/* ส่วนที่ 4: AI Insight ประจำเดือน (คำนวณจากข้อมูลจริง) */}
+                    {/* ส่วนที่ 4: AI Insight ประจำเดือน */}
                     <div className="bg-white border border-purple-200 rounded-2xl p-4 md:p-5 shadow-sm flex flex-col font-sans">
                         <div className="flex items-center gap-2 mb-3">
                             <div className="w-8 h-8 bg-[#E9D5FF] rounded-lg flex items-center justify-center text-[#6B21A8] shrink-0">
@@ -1140,46 +1096,33 @@ export default function ComplaintsPage() {
                             วิเคราะห์ภาพรวมการแจ้งซ่อมและคำแนะนำเพื่อการบำรุงรักษาเชิงป้องกัน
                         </p>
 
-                        {isLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="w-5 h-5 border-2 border-purple-300 border-t-purple-700 rounded-full animate-spin" />
+                        <div className="max-h-72 overflow-y-auto pr-1 space-y-3 text-xs text-gray-600 leading-relaxed scrollbar-thin scrollbar-thumb-purple-200">
+                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <h4 className="font-bold text-gray-900 mb-1 flex items-center gap-1.5 text-xs">
+                                    <ShieldAlert className="w-4 h-4 text-purple-700 shrink-0" />
+                                    สรุปภาพรวมปัญหาประจำเดือน
+                                </h4>
+                                <p className="text-gray-600">
+                                    ห้องน้ำชาย ชั้น 2 โซน A มีเรื่องแจ้งซ่อมบ่อยที่สุดในเดือนนี้ (รวม 9 ครั้ง) โดยปัญหาหลัก 60% เกิดจากอุปกรณ์สุขภัณฑ์ชำรุด (สายฉีดชำระและวาล์วชักโครก) รองลงมาเป็นปัญหาระบบไฟฟ้าหลอดไฟกระพริบในโซนชั้น 1
+                                </p>
                             </div>
-                        ) : (
-                            <div className="max-h-72 overflow-y-auto pr-1 space-y-3 text-xs text-gray-600 leading-relaxed scrollbar-thin scrollbar-thumb-purple-200">
-                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                    <h4 className="font-bold text-gray-900 mb-1.5 flex items-center gap-1.5 text-xs">
-                                        <ShieldAlert className="w-4 h-4 text-purple-700 shrink-0" />
-                                        สรุปภาพรวมปัญหาประจำเดือน
-                                    </h4>
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {aiInsight.summaryText}
-                                    </p>
-                                </div>
 
-                                <div className="p-3 bg-[#FDF4FF] rounded-xl border border-purple-100">
-                                    <h4 className="font-bold text-[#4C1D95] mb-1.5 flex items-center gap-1.5 text-xs">
-                                        <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
-                                        ข้อเสนอแนะในการปรับปรุง
-                                    </h4>
-                                    {aiInsight.total === 0 ? (
-                                        <p className="text-gray-500 italic">ยังไม่มีข้อมูลเพียงพอสำหรับสร้างข้อเสนอแนะ</p>
-                                    ) : (
-                                        <ul className="space-y-1.5 text-gray-700">
-                                            {aiInsight.suggestions.map((s, i) => (
-                                                <li key={i} className="flex gap-2">
-                                                    <span className="text-purple-500 shrink-0 mt-0.5">•</span>
-                                                    <span dangerouslySetInnerHTML={{ __html: s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
+                            <div className="p-3 bg-[#FDF4FF] rounded-xl border border-purple-100">
+                                <h4 className="font-bold text-[#4C1D95] mb-1 flex items-center gap-1.5 text-xs">
+                                    <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
+                                    ข้อเสนอแนะในการปรับปรุง
+                                </h4>
+                                <ul className="list-disc pl-4 space-y-1 text-gray-700">
+                                    <li>เพิ่มรอบการตรวจเช็คสภาพอุปกรณ์สุขภัณฑ์ชั้น 2 เป็นสัปดาห์ละ 2 ครั้ง</li>
+                                    <li>จัดซื้อสำรองอะไหล่ประเภทชุดสายฉีดชำระและหลอดไฟ LED ล่วงหน้า 15%</li>
+                                    <li>ดำเนินการเปลี่ยนหลอดไฟยกเซ็ตในโซนที่มีการแจ้งไฟกระพริบซ้ำเกิน 3 ครั้ง</li>
+                                </ul>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
 
-                {/* ---------------- ส่วนที่ 5: สรุปและเปรียบเทียบรายการแจ้งซ่อมย้อนหลัง 3 ปี ---------------- */}
+                {/* ---------------- ส่วนที่ 5: สรุปและเปรียบเทียบรายการแจ้งซ่อมย้อนหลังตาม Design ---------------- */}
                 <div className="bg-white border border-purple-200 rounded-2xl p-4 md:p-6 shadow-sm mb-6 font-sans">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-purple-100">
                         <div className="flex items-center gap-2.5">
@@ -1188,27 +1131,26 @@ export default function ComplaintsPage() {
                             </div>
                             <div>
                                 <h3 className="text-base font-bold text-gray-900">
-                                    สรุปรายการความเสียหายและการเปรียบเทียบย้อนหลัง ({yearlyComparisonData.length > 0 ? `${yearlyComparisonData[0].year} - ${yearlyComparisonData[yearlyComparisonData.length - 1].year}` : ''})
+                                    สรุปรายการความเสียหายและการเปรียบเทียบย้อนหลัง ({displayedYearlyData[0]?.year || ''} - {displayedYearlyData[displayedYearlyData.length - 1]?.year || ''})
                                 </h3>
                                 <p className="text-xs text-gray-500">
                                     การวิเคราะห์เชิงสถิติความถี่การแจ้งซ่อม
                                 </p>
                             </div>
                         </div>
+
+                        {/* ช่องเลือกจำนวนปีย้อนหลังตามภาพ Design */}
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 font-semibold">ย้อนหลัง</span>
+                            <span className="text-xs font-semibold text-gray-600">ย้อนหลัง</span>
                             <input
                                 type="number"
-                                min={1}
-                                max={50}
-                                value={yearsBackInput}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setYearsBackInput(val === '' ? '' : Math.max(1, parseInt(val, 10) || 1));
-                                }}
-                                className="w-16 bg-purple-50 text-[#6B21A8] font-bold text-xs text-center px-2 py-1.5 rounded-xl border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                min="1"
+                                max="10"
+                                value={yearsBack}
+                                onChange={(e) => setYearsBack(Math.max(1, parseInt(e.target.value) || 1))}
+                                className="w-14 text-center border border-purple-300 rounded-lg py-1 text-xs font-bold text-[#6B21A8] focus:outline-none focus:ring-2 focus:ring-purple-400 bg-purple-50/50"
                             />
-                            <span className="text-xs text-gray-500 font-semibold">ปี (ไม่รวมปีปัจจุบัน)</span>
+                            <span className="text-xs font-semibold text-gray-600">ปี (ไม่รวมปีปัจจุบัน)</span>
                         </div>
                     </div>
 
@@ -1236,15 +1178,17 @@ export default function ComplaintsPage() {
                             </span>
                             <h4 className="text-sm font-semibold text-purple-100 mb-2">ระบบที่มีการแจ้งซ่อมมากที่สุด</h4>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-amber-300">ปี {historicalAnalysis.maxSystemYear} ({historicalAnalysis.maxSystemName})</span>
+                                <span className="text-2xl font-black text-amber-300">
+                                    ปี {historicalAnalysis.maxSystemYear} {historicalAnalysis.maxSystemName ? `(${historicalAnalysis.maxSystemName})` : ''}
+                                </span>
                                 <span className="text-xs text-purple-200">จำนวน {historicalAnalysis.maxSystemCount} ครั้ง</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {yearlyComparisonData.map((data) => {
-                            const isHighestYear = data.year === historicalAnalysis.maxYear;
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {displayedYearlyData.map((data) => {
+                            const isHighestYear = data.year === historicalAnalysis.maxYear && data.totalRepairs > 0;
                             return (
                                 <div
                                     key={data.year}
@@ -1360,9 +1304,9 @@ export default function ComplaintsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-purple-100 text-xs text-gray-700 bg-white">
-                                    {complaints
-                                        .filter((item: any) => item.year === selectedHistoryYear)
-                                        .map((item: any) => (
+                                    {historicalComplaints
+                                        .filter(item => item.year === selectedHistoryYear && (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว'))
+                                        .map(item => (
                                             <tr key={item.id} className="hover:bg-purple-50/50 transition-colors">
                                                 <td className="p-3 font-bold text-purple-900 whitespace-nowrap">{item.code}</td>
                                                 <td className="p-3 whitespace-nowrap">{item.displayDate}</td>
@@ -1595,7 +1539,7 @@ export default function ComplaintsPage() {
                                         disabled={isAcceptDisabled}
                                         className={`flex-1 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors flex items-center justify-center ${isAcceptDisabled
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                                            : 'bg-cyan-400 hover:bg-cyan-500 text-white shadow-sm cursor-pointer'
+                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer'
                                             }`}
                                     >
                                         <span>รับเรื่อง</span>
@@ -1669,7 +1613,7 @@ export default function ComplaintsPage() {
             {/* ---------------- Modal แสดงรูปภาพ ---------------- */}
             {viewImageModal && activeComplaint && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150 font-sans">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-4 relative shadow-2xl">
+                    <div className="bg-[#FFFFFF] rounded-2xl max-w-lg w-full p-4 relative shadow-2xl">
                         <button
                             onClick={() => setViewImageModal(false)}
                             className="absolute right-3 top-3 bg-black/50 text-white hover:bg-black p-1.5 rounded-full transition-colors z-10"

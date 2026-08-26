@@ -33,6 +33,37 @@ import {
     Layers
 } from 'lucide-react';
 
+interface Complaint {
+    id: string;
+    code: string;
+    date: string;
+    displayDate: string;
+    location: string;
+    category: string;
+    problem: string;
+    severity: string;
+    status: string;
+    repeatCount: number;
+    imageUrl: string;
+    note: string;
+    repeatRejectNote?: string;
+}
+
+interface SubComplaint extends Complaint {
+    uniqueId: string;
+    repeatIndex: number;
+}
+
+interface GroupedComplaint extends Complaint {
+    primaryCode: string;
+    subItems: SubComplaint[];
+}
+
+interface CategoryModalData {
+    category: string;
+    problem: string;
+}
+
 // ข้อมูลจำลองรายการแจ้งซ่อมปัจจุบัน
 const initialComplaints = [
     {
@@ -193,7 +224,7 @@ const categorySummary = [
 ];
 
 // ปรับแต่งสถานะให้มี 3 สถานะ: รอรับเรื่อง (สีเหลือง), รับเรื่อง/แจ้งแล้ว (สีเขียว), ไม่รับเรื่อง (สีแดง)
-const renderStatusBadge = (status) => {
+const renderStatusBadge = (status: string) => {
     if (status === 'รับเรื่อง' || status === 'แจ้งแล้ว') {
         return (
             <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] border border-[#A7F3D0] text-center shadow-xs">
@@ -220,17 +251,17 @@ export default function ComplaintsPage() {
     const openMobileMenu = useOpenMobileMenu();
 
     // State จัดการข้อมูลรายการแจ้งซ่อม
-    const [complaints, setComplaints] = useState(initialComplaints);
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // State จัดการตารางที่กำลังเลือกโหมดลบ ('latest' หรือ 'all') เพื่อให้แยกกันแสดงผล UI
-    const [deleteModeTable, setDeleteModeTable] = useState(null);
+    const [deleteModeTable, setDeleteModeTable] = useState<'latest' | 'all' | null>(null);
 
     // State จัดการ Dropdown ยุบ/คลี่ตาราง
     const [isLatestOpen, setIsLatestOpen] = useState(false);
     const [isAllOpen, setIsAllOpen] = useState(false);
 
-    const [expandedGroupIds, setExpandedGroupIds] = useState([]);
+    const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -240,18 +271,18 @@ export default function ComplaintsPage() {
     const [exportOption, setExportOption] = useState('complaints');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-    const [activeComplaint, setActiveComplaint] = useState(null);
+    const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
     const [remarkNote, setRemarkNote] = useState('');
     const [viewImageModal, setViewImageModal] = useState(false);
-    const [categoryModalData, setCategoryModalData] = useState(null);
-    const [selectedHistoryYear, setSelectedHistoryYear] = useState(null);
+    const [categoryModalData, setCategoryModalData] = useState<CategoryModalData | null>(null);
+    const [selectedHistoryYear, setSelectedHistoryYear] = useState<number | null>(null);
 
     // State สำหรับการเลือกจำนวนปีย้อนหลัง (ไม่รวมปีปัจจุบัน)
     const [yearsBack, setYearsBack] = useState(3);
 
     const [autoRejectModalOpen, setAutoRejectModalOpen] = useState(false);
     const [autoRejectNote, setAutoRejectNote] = useState('');
-    const [pendingAcceptComplaint, setPendingAcceptComplaint] = useState(null);
+    const [pendingAcceptComplaint, setPendingAcceptComplaint] = useState<Complaint | null>(null);
 
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(3);
@@ -261,7 +292,7 @@ export default function ComplaintsPage() {
         { id: 3, title: 'ตรวจพบเรื่องแจ้งซ้ำ', desc: 'โถส้วมชำรุด ห้องน้ำหญิง ชั้น 1 (4 ครั้ง)', time: '1 ชั่วโมงที่แล้ว' },
     ];
 
-    const showToast = (msg) => {
+    const showToast = (msg: string) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(''), 3500);
     };
@@ -386,7 +417,7 @@ export default function ComplaintsPage() {
         });
     }, [filteredComplaints]);
 
-    const toggleGroupExpand = (groupId) => {
+    const toggleGroupExpand = (groupId: string) => {
         setExpandedGroupIds(prev =>
             prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
         );
@@ -414,7 +445,7 @@ export default function ComplaintsPage() {
         }
     };
 
-    const handleSelectRow = (id) => {
+    const handleSelectRow = (id: string) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
         );
@@ -428,9 +459,9 @@ export default function ComplaintsPage() {
         showToast('ลบข้อมูลเรียบร้อยแล้ว');
     };
 
-    const exportToCSV = (type) => {
-        let headers = [];
-        let rows = [];
+    const exportToCSV = (type: string) => {
+        let headers: string[] = [];
+        let rows: string[][] = [];
         let filename = `export_report_${new Date().toISOString().slice(0, 10)}.csv`;
 
         if (type === 'complaints') {

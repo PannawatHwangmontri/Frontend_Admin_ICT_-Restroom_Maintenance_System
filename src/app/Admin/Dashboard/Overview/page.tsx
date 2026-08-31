@@ -608,15 +608,15 @@ export default function Dashboard() {
                     </div>
 
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
-                        <p className="text-xs font-medium text-gray-500 mb-1">แจ้งแล้ว / กำลังดำเนินการ</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#108653] mb-2">{metrics.acceptedCount}</div>
                         <p className="text-xs text-gray-400">มีเจ้าหน้าที่รับผิดชอบ</p>
                     </div>
 
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm sm:col-span-2 lg:col-span-1">
-                        <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง / ยกเลิก</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#e83455] mb-2">{metrics.rejectedCount}</div>
-                        <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน/ยกเลิก</p>
+                        <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน</p>
                     </div>
                 </div>
 

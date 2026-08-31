@@ -433,7 +433,7 @@ export default function ProgressReportPage() {
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-xs sm:col-span-2 lg:col-span-1">
                         <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#e83455] mb-2">{metrics.rejectedCount}</div>
-                        <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน/ยกเลิก</p>
+                        <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน</p>
                     </div>
                 </div>
 

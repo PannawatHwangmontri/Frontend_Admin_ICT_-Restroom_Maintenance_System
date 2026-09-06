@@ -31,8 +31,8 @@ interface Restroom {
 // ข้อมูลจำลองจุดห้องน้ำที่ปรับพิกัดให้อยู่ตรงบริเวณโซนห้องน้ำสีฟ้าพอดี
 const initialRestrooms: Restroom[] = [
     // --- ชั้น 1 ---
-    { id: '1-M-A', floor: 1, name: 'ห้องน้ำชาย / ชั้น 1 โซน A', status: 'available', x: 72.8, y: 29.63 },
-    { id: '1-W-A', floor: 1, name: 'ห้องน้ำหญิง / ชั้น 1 โซน A', status: 'available', x: 71.7, y: 26.10 },
+    { id: '1-M-A', floor: 1, name: 'ห้องน้ำหญิง / ชั้น 1 โซน A', status: 'available', x: 72.8, y: 29.63 },
+    { id: '1-W-A', floor: 1, name: 'ห้องน้ำชาย / ชั้น 1 โซน A', status: 'available', x: 71.7, y: 26.10 },
     { id: '1-M-B', floor: 1, name: 'ห้องน้ำชาย / ชั้น 1 โซน B', status: 'available', x: 24.9, y: 31.47 },
     { id: '1-W-B', floor: 1, name: 'ห้องน้ำหญิง / ชั้น 1 โซน B', status: 'available', x: 23.8, y: 35.43 },
 

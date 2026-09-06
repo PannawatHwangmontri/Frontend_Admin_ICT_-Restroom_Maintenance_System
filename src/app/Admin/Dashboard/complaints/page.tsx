@@ -140,16 +140,16 @@ const initialComplaints: Complaint[] = [
     }
 ];
 
-// ปรับแต่งสถานะให้มี 3 สถานะ: รอรับเรื่อง (สีเหลือง), รับเรื่อง/แจ้งแล้ว (สีเขียว), ไม่รับเรื่อง (สีแดง)
+// ปรับแต่งสถานะให้มี 3 สถานะ: รอรับเรื่อง (สีเหลือง), รับเรื่อง (สีเขียว), ไม่รับเรื่อง (สีแดง)
 const renderStatusBadge = (status: string) => {
-    if (status === 'รับเรื่อง' || status === 'แจ้งแล้ว' || status === 'กำลังดำเนินการ' || status === 'เสร็จสิ้น') {
+    if (status === 'รับเรื่อง') {
         return (
             <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] border border-[#A7F3D0] text-center shadow-xs">
                 รับเรื่อง
             </span>
         );
     }
-    if (status === 'ไม่รับเรื่อง' || status === 'ยกเลิก') {
+    if (status === 'ไม่รับเรื่อง') {
         return (
             <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] text-center shadow-xs">
                 ไม่รับเรื่อง
@@ -168,7 +168,7 @@ export default function ComplaintsPage() {
     const openMobileMenu = useOpenMobileMenu();
 
     // State จัดการข้อมูลรายการแจ้งซ่อม
-    const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
+    const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -193,11 +193,17 @@ export default function ComplaintsPage() {
     const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
     const [remarkNote, setRemarkNote] = useState('');
     const [viewImageModal, setViewImageModal] = useState(false);
+    const [isLoadingImage, setIsLoadingImage] = useState(false);
     const [categoryModalData, setCategoryModalData] = useState<CategoryModalData | null>(null);
     const [selectedHistoryYear, setSelectedHistoryYear] = useState<number | null>(null);
 
     // State สำหรับการเลือกจำนวนปีย้อนหลัง (ไม่รวมปีปัจจุบัน)
     const [yearsBack, setYearsBack] = useState(3);
+    const [isMonthlyHistoryOpen, setIsMonthlyHistoryOpen] = useState(false);
+    const [isYearlyHistoryOpen, setIsYearlyHistoryOpen] = useState(false);
+    const [selectedHistoryMonthStart, setSelectedHistoryMonthStart] = useState(0);
+    const [selectedHistoryMonthEnd, setSelectedHistoryMonthEnd] = useState(new Date().getMonth());
+    const [selectedHistoryMonthYear, setSelectedHistoryMonthYear] = useState(new Date().getFullYear());
 
     const [autoRejectModalOpen, setAutoRejectModalOpen] = useState(false);
     const [autoRejectNote, setAutoRejectNote] = useState('');
@@ -216,13 +222,15 @@ export default function ComplaintsPage() {
             const res = await fetch('/api/requests', { cache: 'no-store' });
             const result = await res.json();
 
-            if (result.success && Array.isArray(result.data)) {
-                // คำนวณความถี่การแจ้งซ้ำตามสถานที่และปัญหา
+            if (res.ok && result.success && Array.isArray(result.data)) {
+                // คำนวณความถี่การแจ้งซ้ำตามสถานที่ ปัญหา และเฉพาะวันเดียวกัน
                 const repeatMap = new Map<string, number>();
                 result.data.forEach((item: any) => {
                     const loc = (item.location || '').trim();
                     const prob = (item.issue_summary || '').trim();
-                    const key = `${loc}__${prob}`;
+                    const d = item.reported_at ? new Date(item.reported_at) : new Date();
+                    const dateIso = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+                    const key = `${dateIso}__${loc}__${prob}`;
                     repeatMap.set(key, (repeatMap.get(key) || 0) + 1);
                 });
 
@@ -256,17 +264,16 @@ export default function ComplaintsPage() {
                         cat = 'สุขภัณฑ์';
                     }
 
-                    // กำหนดสถานะมาตรฐาน
-                    let currentStatus = 'รอรับเรื่อง';
-                    if (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว' || item.status === 'กำลังดำเนินการ' || item.status === 'เสร็จสิ้น') {
-                        currentStatus = 'รับเรื่อง';
-                    } else if (item.status === 'ไม่รับเรื่อง' || item.status === 'ยกเลิก') {
-                        currentStatus = 'ไม่รับเรื่อง';
-                    }
+                    // รับเฉพาะสถานะมาตรฐาน 3 สถานะ
+                    const currentStatus = ['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(item.status)
+                        ? 'รับเรื่อง'
+                        : ['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)
+                            ? 'ไม่รับเรื่อง'
+                            : 'รอรับเรื่อง';
 
                     const loc = (item.location || '').trim();
                     const prob = (item.issue_summary || '').trim();
-                    const key = `${loc}__${prob}`;
+                    const key = `${dateIso}__${loc}__${prob}`;
                     const count = repeatMap.get(key) || 1;
 
                     return {
@@ -281,7 +288,7 @@ export default function ComplaintsPage() {
                         severity: (item.priority === 'สูง' || item.priority === 'วิกฤต' || item.priority === 'HIGH' || item.priority === 'URGENT') ? 'เร่งด่วน' : 'ปกติ',
                         status: currentStatus,
                         repeatCount: count,
-                        imageUrl: item.image_url || '/photo/ปัญหาสายชำระชำรุด.jpg',
+                        imageUrl: item.image_url || '',
                         note: item.remark || '',
                         repeatRejectNote: '',
                         line_user_id: item.line_user_id || undefined,
@@ -290,12 +297,13 @@ export default function ComplaintsPage() {
 
                 setComplaints(mapped);
             } else {
-                setComplaints(initialComplaints);
+                setComplaints([]);
+                showToast(result.message || 'ไม่พบข้อมูลจาก Backend');
             }
         } catch (error) {
             console.error('Failed to fetch complaints:', error);
             showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Backend');
-            setComplaints(initialComplaints);
+            setComplaints([]);
         } finally {
             setIsLoading(false);
         }
@@ -354,6 +362,71 @@ export default function ComplaintsPage() {
         return years;
     }, [complaints, yearsBack]);
 
+    const thaiMonths = useMemo(() => [
+        { value: 0, label: 'มกราคม' },
+        { value: 1, label: 'กุมภาพันธ์' },
+        { value: 2, label: 'มีนาคม' },
+        { value: 3, label: 'เมษายน' },
+        { value: 4, label: 'พฤษภาคม' },
+        { value: 5, label: 'มิถุนายน' },
+        { value: 6, label: 'กรกฎาคม' },
+        { value: 7, label: 'สิงหาคม' },
+        { value: 8, label: 'กันยายน' },
+        { value: 9, label: 'ตุลาคม' },
+        { value: 10, label: 'พฤศจิกายน' },
+        { value: 11, label: 'ธันวาคม' },
+    ], []);
+
+    const availableYears = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const yearsSet = new Set<number>();
+        yearsSet.add(currentYear);
+        complaints.forEach((c) => {
+            const d = c.rawDate ? new Date(c.rawDate) : new Date(c.date);
+            if (!isNaN(d.getTime())) {
+                yearsSet.add(d.getFullYear());
+            }
+        });
+        return Array.from(yearsSet).sort((a, b) => b - a);
+    }, [complaints]);
+
+    const selectedMonthData = useMemo(() => {
+        const start = Math.min(selectedHistoryMonthStart, selectedHistoryMonthEnd);
+        const end = Math.max(selectedHistoryMonthStart, selectedHistoryMonthEnd);
+
+        const records = complaints.filter((item) => {
+            const itemDate = item.rawDate ? new Date(item.rawDate) : new Date(item.date);
+            if (isNaN(itemDate.getTime())) return false;
+            const itemYear = itemDate.getFullYear();
+            const itemMonth = itemDate.getMonth();
+            return itemYear === selectedHistoryMonthYear && itemMonth >= start && itemMonth <= end;
+        });
+
+        const startMonthName = thaiMonths[start]?.label || '';
+        const endMonthName = thaiMonths[end]?.label || '';
+        const label = start === end
+            ? `${startMonthName} ${selectedHistoryMonthYear}`
+            : `${startMonthName} - ${endMonthName} ${selectedHistoryMonthYear}`;
+
+        const waterCount = records.filter(i => i.category === 'ระบบน้ำ').length;
+        const sanitaryCount = records.filter(i => i.category === 'สุขภัณฑ์').length;
+        const electricCount = records.filter(i => i.category === 'ระบบไฟฟ้า').length;
+
+        return {
+            year: selectedHistoryMonthYear,
+            startMonth: start,
+            endMonth: end,
+            label,
+            totalRepairs: records.length,
+            records,
+            categories: [
+                { name: 'ระบบน้ำ', count: waterCount },
+                { name: 'สุขภัณฑ์', count: sanitaryCount },
+                { name: 'ระบบไฟฟ้า', count: electricCount },
+            ],
+        };
+    }, [complaints, selectedHistoryMonthYear, selectedHistoryMonthStart, selectedHistoryMonthEnd, thaiMonths]);
+
     const historicalAnalysis = useMemo(() => {
         if (!displayedYearlyData.length) {
             return {
@@ -392,7 +465,7 @@ export default function ComplaintsPage() {
         };
     }, [displayedYearlyData]);
 
-    // จัดกลุ่มรายการแจ้งซ่อมจริงตามสถานที่และปัญหา (แสดงผลรวมรายการซ้ำจากข้อมูลจริงใน DB)
+    // จัดกลุ่มรายการแจ้งซ่อมจริงตามสถานที่ ปัญหา และเฉพาะวันเดียวกัน (แสดงผลรวมรายการซ้ำจากข้อมูลจริงใน DB)
     const groupedComplaintsByRepeat = useMemo(() => {
         const groupMap = new Map<string, Complaint[]>();
 
@@ -400,7 +473,8 @@ export default function ComplaintsPage() {
             const loc = (item.location || '').trim().toLowerCase();
             const cat = (item.category || '').trim();
             const prob = (item.problem || '').trim().toLowerCase();
-            const key = `${loc}__${cat}__${prob}`;
+            const dateStr = item.date || '';
+            const key = `${dateStr}__${loc}__${cat}__${prob}`;
 
             if (!groupMap.has(key)) {
                 groupMap.set(key, []);
@@ -606,6 +680,39 @@ export default function ComplaintsPage() {
                     rows.push([`"${cat.title}"`, `"${item.name}"`, `"${item.count}"`]);
                 });
             });
+        } else if (type === 'monthly') {
+            filename = `monthly_summary_${selectedHistoryMonthYear}_${selectedMonthData.startMonth + 1}_to_${selectedMonthData.endMonth + 1}_${new Date().toISOString().slice(0, 10)}.csv`;
+            headers = ['ช่วงเดือน/ปี', 'จำนวนรายการทั้งหมด', 'ระบบน้ำ', 'สุขภัณฑ์', 'ระบบไฟฟ้า'];
+            rows = [
+                [
+                    `"${selectedMonthData.label}"`,
+                    `"${selectedMonthData.totalRepairs}"`,
+                    `"${selectedMonthData.categories[0].count}"`,
+                    `"${selectedMonthData.categories[1].count}"`,
+                    `"${selectedMonthData.categories[2].count}"`
+                ]
+            ];
+            if (selectedMonthData.records.length > 0) {
+                rows.push([]);
+                rows.push(['--- รายการแจ้งซ่อมในช่วงเดือนที่เลือก ---', '', '', '', '']);
+                rows.push(['ID', 'วัน/เดือน/ปี', 'สถานที่', 'หมวดหมู่/ปัญหา', 'สถานะ']);
+                selectedMonthData.records.forEach(r => {
+                    rows.push([
+                        `"${r.code}"`,
+                        `"${r.displayDate}"`,
+                        `"${r.location}"`,
+                        `"${r.category} - ${r.problem}"`,
+                        `"${r.status}"`
+                    ]);
+                });
+            }
+        } else if (type === 'yearly') {
+            filename = `yearly_history_${new Date().toISOString().slice(0, 10)}.csv`;
+            headers = ['ปี', 'จำนวนรายการ', 'ระบบน้ำ', 'สุขภัณฑ์', 'ระบบไฟฟ้า'];
+            rows = displayedYearlyData.map((data) => [
+                `"${data.year}"`, `"${data.totalRepairs}"`,
+                `"${data.categories[0].count}"`, `"${data.categories[1].count}"`, `"${data.categories[2].count}"`
+            ]);
         } else if (type === 'ai') {
             filename = `ai_insight_${new Date().toISOString().slice(0, 10)}.csv`;
             headers = ['ส่วนงาน', 'รายละเอียด / ข้อเสนอแนะ'];
@@ -639,42 +746,54 @@ export default function ComplaintsPage() {
     const handleAcceptMain = async () => {
         if (!activeComplaint) return;
 
-        if (activeComplaint.repeatCount > 1) {
-            setPendingAcceptComplaint(activeComplaint);
-            setAutoRejectNote(`ข้อมูลซ้ำซ้อนกับรายการที่ 1 (${activeComplaint.code}) ที่รับเรื่องแล้ว`);
-            setAutoRejectModalOpen(true);
-        } else {
-            setIsUpdating(true);
-            try {
-                const res = await fetch(`/api/requests/${activeComplaint.id}`, {
+        setIsUpdating(true);
+        try {
+            // ค้นหารายการทั้งหมดในข้อมูลซ้ำของวันเดียวกัน
+            const sameDayDuplicates = complaints.filter(
+                c => c.date === activeComplaint.date &&
+                    (c.location || '').trim().toLowerCase() === (activeComplaint.location || '').trim().toLowerCase() &&
+                    (c.problem || '').trim().toLowerCase() === (activeComplaint.problem || '').trim().toLowerCase()
+            );
+
+            const groupSubItems = (activeComplaint as any).subItems || [];
+            const targetIds = Array.from(new Set([
+                activeComplaint.id,
+                ...groupSubItems.map((s: any) => s.id),
+                ...sameDayDuplicates.map(d => d.id)
+            ]));
+
+            // ส่งคำขอเปลี่ยนสถานะเป็น 'แจ้งแล้ว' (รับเรื่อง) ไปยัง Backend สำหรับทุกรายการในกลุ่มของวันนั้น
+            await Promise.all(targetIds.map(id =>
+                fetch(`/api/requests/${id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        status: 'รับเรื่อง',
+                        status: 'แจ้งแล้ว',
                         notification_message: 'เจ้าหน้าที่รับเรื่องเรียบร้อยแล้ว กำลังเตรียมการเข้าซ่อม'
                     }),
-                });
-                const result = await res.json();
-                if (res.ok && result.success) {
-                    setComplaints((prev) =>
-                        prev.map((item) =>
-                            item.id === activeComplaint.id
-                                ? { ...item, status: 'รับเรื่อง', note: '' }
-                                : item
-                        )
-                    );
-                    showToast('รับเรื่องเรียบร้อยแล้ว');
-                } else {
-                    showToast(result.message || 'ไม่สามารถรับเรื่องได้');
-                }
-            } catch (error) {
-                console.error('Error accepting complaint:', error);
-                showToast('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
-            } finally {
-                setIsUpdating(false);
-                setActiveComplaint(null);
-                setRemarkNote('');
-            }
+                })
+            ));
+
+            // อัปเดตสถานะใน State ของทุกรายการที่ซ้ำในวันนั้นเป็น 'รับเรื่อง'
+            setComplaints((prev) =>
+                prev.map((item) =>
+                    targetIds.includes(item.id)
+                        ? { ...item, status: 'รับเรื่อง', note: '' }
+                        : item
+                )
+            );
+
+            showToast(targetIds.length > 1
+                ? `รับเรื่องรายการและข้อมูลซ้ำของวันเดียวกันรวม ${targetIds.length} รายการเรียบร้อยแล้ว`
+                : 'รับเรื่องเรียบร้อยแล้ว'
+            );
+        } catch (error) {
+            console.error('Error accepting complaint:', error);
+            showToast('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+        } finally {
+            setIsUpdating(false);
+            setActiveComplaint(null);
+            setRemarkNote('');
         }
     };
 
@@ -689,7 +808,7 @@ export default function ComplaintsPage() {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    status: 'รับเรื่อง',
+                    status: 'แจ้งแล้ว',
                     notification_message: 'เจ้าหน้าที่รับเรื่องเรียบร้อยแล้ว กำลังเตรียมการเข้าซ่อม'
                 }),
             });
@@ -757,41 +876,56 @@ export default function ComplaintsPage() {
         }
     };
 
-    // ปฏิเสธไม่รับเรื่อง เชื่อมต่อ Backend DB
+    // ปฏิเสธไม่รับเรื่อง เชื่อมต่อ Backend DB (อัปเดตทุกรายการในข้อมูลซ้ำของวันเดียวกัน)
     const handleRejectMain = async () => {
         if (!activeComplaint) return;
 
         const noteToSave = remarkNote.trim() || 'ไม่รับเรื่อง (ข้อมูลซ้ำซ้อน/รายละเอียดไม่ชัดเจน)';
         setIsUpdating(true);
         try {
-            const res = await fetch(`/api/requests/${activeComplaint.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: 'ไม่รับเรื่อง',
-                    remark: noteToSave,
-                    notification_message: `ไม่รับเรื่อง: ${noteToSave}`
-                }),
-            });
-            const result = await res.json();
-            if (res.ok && result.success) {
-                setComplaints((prev) =>
-                    prev.map((item) => {
-                        if (item.id === activeComplaint.id) {
-                            return {
-                                ...item,
-                                status: 'ไม่รับเรื่อง',
-                                note: noteToSave,
-                                repeatRejectNote: noteToSave
-                            };
+            // ค้นหารายการทั้งหมดในข้อมูลซ้ำของวันเดียวกัน
+            const sameDayDuplicates = complaints.filter(
+                c => c.date === activeComplaint.date &&
+                    (c.location || '').trim().toLowerCase() === (activeComplaint.location || '').trim().toLowerCase() &&
+                    (c.problem || '').trim().toLowerCase() === (activeComplaint.problem || '').trim().toLowerCase()
+            );
+
+            const groupSubItems = (activeComplaint as any).subItems || [];
+            const targetIds = Array.from(new Set([
+                activeComplaint.id,
+                ...groupSubItems.map((s: any) => s.id),
+                ...sameDayDuplicates.map(d => d.id)
+            ]));
+
+            await Promise.all(targetIds.map(id =>
+                fetch(`/api/requests/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'ไม่รับเรื่อง',
+                        remark: noteToSave,
+                        notification_message: `ไม่รับเรื่อง: ${noteToSave}`
+                    }),
+                })
+            ));
+
+            setComplaints((prev) =>
+                prev.map((item) =>
+                    targetIds.includes(item.id)
+                        ? {
+                            ...item,
+                            status: 'ไม่รับเรื่อง',
+                            note: noteToSave,
+                            repeatRejectNote: noteToSave
                         }
-                        return item;
-                    })
-                );
-                showToast('บันทึกการไม่รับเรื่องเรียบร้อยแล้ว');
-            } else {
-                showToast(result.message || 'ไม่สามารถปฏิเสธรายการได้');
-            }
+                        : item
+                )
+            );
+
+            showToast(targetIds.length > 1
+                ? `บันทึกไม่รับเรื่องข้อมูลซ้ำของวันเดียวกันรวม ${targetIds.length} รายการเรียบร้อยแล้ว`
+                : 'บันทึกการไม่รับเรื่องเรียบร้อยแล้ว'
+            );
         } catch (error) {
             console.error('Error rejecting complaint:', error);
             showToast('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
@@ -1371,113 +1505,137 @@ export default function ComplaintsPage() {
                 </div>
 
                 {/* ---------------- ส่วนที่ 5: สรุปและเปรียบเทียบรายการแจ้งซ่อมย้อนหลัง ---------------- */}
-                <div className="bg-white border border-purple-200 rounded-2xl p-4 md:p-6 shadow-sm mb-6 font-sans">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-purple-100">
-                        <div className="flex items-center gap-2.5">
-                            <div className="p-2 bg-purple-100 text-[#6B21A8] rounded-xl">
-                                <History className="w-5 h-5" />
+                <div className="mb-6 space-y-4 font-sans">
+                    <div className="overflow-hidden rounded-2xl shadow-sm">
+                        <div className="bg-[#6B21A8] text-white px-4 py-3 flex items-center justify-between gap-3 cursor-pointer" onClick={() => setIsMonthlyHistoryOpen(!isMonthlyHistoryOpen)}>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-1 rounded-md bg-white/10"><ChevronRight className={`w-5 h-5 transition-transform ${isMonthlyHistoryOpen ? 'rotate-90' : ''}`} /></div>
+                                <span className="font-bold text-sm sm:text-base truncate">สรุปรายเดือน</span>
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-gray-900">
-                                    สรุปรายการความเสียหายและการเปรียบเทียบย้อนหลัง ({displayedYearlyData[0]?.year || ''} - {displayedYearlyData[displayedYearlyData.length - 1]?.year || ''})
-                                </h3>
-                                <p className="text-xs text-gray-500">
-                                    การวิเคราะห์เชิงสถิติความถี่การแจ้งซ่อม
-                                </p>
-                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); exportToCSV('monthly'); }} className="shrink-0 flex items-center gap-1.5 rounded-xl border border-purple-300 bg-purple-700/70 px-3 py-1.5 text-xs font-bold hover:bg-purple-900 transition-colors" title="Export สรุปรายเดือน">
+                                <Download className="w-4 h-4" /><span className="hidden sm:inline">Export</span>
+                            </button>
                         </div>
+                        {isMonthlyHistoryOpen && (
+                            <div className="bg-white border border-t-0 border-purple-200 p-4">
+                                <div className="flex flex-wrap items-center gap-3 mb-4 rounded-xl bg-purple-50/70 p-3 border border-purple-100">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700">เลือกปี:</span>
+                                        <select
+                                            value={selectedHistoryMonthYear}
+                                            onChange={(e) => setSelectedHistoryMonthYear(Number(e.target.value))}
+                                            className="border border-purple-300 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#6B21A8] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                        >
+                                            {availableYears.map((year) => (
+                                                <option key={year} value={year}>
+                                                    ปี {year} ({year + 543})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700">ตั้งแต่เดือน:</span>
+                                        <select
+                                            value={selectedHistoryMonthStart}
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setSelectedHistoryMonthStart(val);
+                                                if (val > selectedHistoryMonthEnd) {
+                                                    setSelectedHistoryMonthEnd(val);
+                                                }
+                                            }}
+                                            className="border border-purple-300 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#6B21A8] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                        >
+                                            {thaiMonths.map((m) => (
+                                                <option key={m.value} value={m.value}>
+                                                    {m.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700">ถึงเดือน:</span>
+                                        <select
+                                            value={selectedHistoryMonthEnd}
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setSelectedHistoryMonthEnd(val);
+                                                if (val < selectedHistoryMonthStart) {
+                                                    setSelectedHistoryMonthStart(val);
+                                                }
+                                            }}
+                                            className="border border-purple-300 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#6B21A8] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                        >
+                                            {thaiMonths.map((m) => (
+                                                <option key={m.value} value={m.value}>
+                                                    {m.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                        {/* ช่องเลือกจำนวนปีย้อนหลัง */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-600">ย้อนหลัง</span>
-                            <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={yearsBack}
-                                onChange={(e) => setYearsBack(Math.max(1, parseInt(e.target.value) || 1))}
-                                className="w-14 text-center border border-purple-300 rounded-lg py-1 text-xs font-bold text-[#6B21A8] focus:outline-none focus:ring-2 focus:ring-purple-400 bg-purple-50/50"
-                            />
-                            <span className="text-xs font-semibold text-gray-600">ปี (ไม่รวมปีปัจจุบัน)</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-900 to-indigo-950 text-white shadow-md relative overflow-hidden">
-                            <div className="absolute right-2 bottom-2 text-white/10 pointer-events-none">
-                                <TrendingUp className="w-24 h-24" />
-                            </div>
-                            <span className="text-[11px] font-semibold text-purple-200 uppercase tracking-wider block mb-1">
-                                สถิติสูงสุดประจำช่วงปี
-                            </span>
-                            <h4 className="text-sm font-semibold text-purple-100 mb-2">ปีที่มีการแจ้งซ่อมมากที่สุด</h4>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-amber-300">ปี {historicalAnalysis.maxYear}</span>
-                                <span className="text-xs text-purple-200">รวมทั้งสิ้น {historicalAnalysis.maxYearCount} รายการ</span>
-                            </div>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#6B21A8] to-purple-800 text-white shadow-md relative overflow-hidden">
-                            <div className="absolute right-2 bottom-2 text-white/10 pointer-events-none">
-                                <BarChart3 className="w-24 h-24" />
-                            </div>
-                            <span className="text-[11px] font-semibold text-purple-200 uppercase tracking-wider block mb-1">
-                                ระบบที่มีความชำรุดสูงสุด
-                            </span>
-                            <h4 className="text-sm font-semibold text-purple-100 mb-2">ระบบที่มีการแจ้งซ่อมมากที่สุด</h4>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-amber-300">
-                                    ปี {historicalAnalysis.maxSystemYear} {historicalAnalysis.maxSystemName ? `(${historicalAnalysis.maxSystemName})` : ''}
-                                </span>
-                                <span className="text-xs text-purple-200">จำนวน {historicalAnalysis.maxSystemCount} ครั้ง</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {displayedYearlyData.map((data) => {
-                            const isHighestYear = data.year === historicalAnalysis.maxYear && data.totalRepairs > 0;
-                            return (
-                                <div
-                                    key={data.year}
-                                    className={`p-4 rounded-xl border transition-all ${isHighestYear
-                                        ? 'border-purple-300 bg-purple-50/70 shadow-sm'
-                                        : 'border-gray-200 bg-white hover:border-purple-200'
-                                        }`}
-                                >
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h4 className="font-bold text-base text-gray-800">ปี {data.year}</h4>
-                                        {isHighestYear && (
-                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                                                ซ่อมมากที่สุด
-                                            </span>
-                                        )}
+                                {/* แสดงข้อมูลสรุปของช่วงเดือนและปีที่เลือก */}
+                                <div className="rounded-xl border border-purple-200 bg-purple-50/30 p-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-3 border-b border-purple-100 gap-2">
+                                        <div>
+                                            <span className="text-xs font-semibold text-gray-500">ข้อมูลสรุปประจำช่วงเดือน</span>
+                                            <h4 className="text-base font-bold text-[#4C1D95]">{selectedMonthData.label}</h4>
+                                        </div>
+                                        <div className="text-left sm:text-right">
+                                            <span className="text-xs text-gray-500">ยอดรวมการแจ้งซ่อม: </span>
+                                            <span className="text-lg font-black text-[#6B21A8]">{selectedMonthData.totalRepairs}</span>
+                                            <span className="text-xs font-semibold text-gray-600"> รายการ</span>
+                                        </div>
                                     </div>
 
-                                    <div className="text-xs font-semibold text-gray-600 mb-3 pb-2 border-b border-gray-100 flex justify-between">
-                                        <span>ยอดซ่อมรวม:</span>
-                                        <span className="font-bold text-purple-900">{data.totalRepairs} รายการ</span>
-                                    </div>
-
-                                    <div className="space-y-1.5 text-xs text-gray-600 mb-4">
-                                        {data.categories.map((c, i) => (
-                                            <div key={i} className="flex justify-between items-center">
-                                                <span>• {c.name}</span>
-                                                <span className="font-medium text-gray-800">{c.count} ครั้ง</span>
+                                    {/* แยกตามหมวดหมู่ */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                                        {selectedMonthData.categories.map((cat) => (
+                                            <div key={cat.name} className="bg-white rounded-xl p-3 border border-purple-100 shadow-2xs">
+                                                <div className="text-xs text-gray-500 font-medium">{cat.name}</div>
+                                                <div className="text-base font-bold text-gray-800 mt-0.5">
+                                                    {cat.count} <span className="text-xs font-normal text-gray-500">รายการ</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
 
-                                    <button
-                                        onClick={() => setSelectedHistoryYear(data.year)}
-                                        className="w-full flex items-center justify-center gap-1.5 bg-white hover:bg-purple-100 text-[#6B21A8] border border-purple-300 font-bold py-2 rounded-lg text-xs transition-colors"
-                                    >
-                                        <Eye className="w-3.5 h-3.5" />
-                                        <span>ดูข้อมูลแจ้งซ่อม (แจ้งแล้ว)</span>
-                                    </button>
+                                    {selectedMonthData.totalRepairs > 0 ? (
+                                        <div className="space-y-2 mt-3">
+                                            <div className="text-xs font-bold text-gray-700">รายการแจ้งซ่อมในช่วงเดือนนี้:</div>
+                                            <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-purple-200">
+                                                {selectedMonthData.records.map((r) => (
+                                                    <div key={r.id} className="bg-white p-2.5 rounded-lg border border-gray-200/80 text-xs flex items-center justify-between gap-2">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="font-semibold text-purple-900 truncate">{r.code} - {r.location}</div>
+                                                            <div className="text-gray-600 truncate">{r.problem}</div>
+                                                            <div className="text-[11px] text-gray-400">{r.displayDate}</div>
+                                                        </div>
+                                                        <div className="shrink-0">{renderStatusBadge(r.status)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 text-xs text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
+                                            ไม่มีรายการแจ้งซ่อมในช่วงเดือนที่เลือก
+                                        </div>
+                                    )}
                                 </div>
-                            );
-                        })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl shadow-sm">
+                        <div className="bg-[#5B00D6] text-white px-4 py-3 flex items-center justify-between gap-3 cursor-pointer" onClick={() => setIsYearlyHistoryOpen(!isYearlyHistoryOpen)}>
+                            <div className="flex items-center gap-3 min-w-0"><div className="p-1 rounded-md bg-white/10"><ChevronRight className={`w-5 h-5 transition-transform ${isYearlyHistoryOpen ? 'rotate-90' : ''}`} /></div><span className="font-bold text-sm sm:text-base truncate">สรุปรายปี (ดูย้อนหลังได้ทุกปี)</span></div>
+                            <button onClick={(e) => { e.stopPropagation(); exportToCSV('yearly'); showToast('ส่งออกข้อมูลรายปีย้อนหลังเรียบร้อยแล้ว'); }} className="flex items-center gap-1.5 rounded-xl border border-purple-300 bg-purple-700/70 px-3 py-1.5 text-xs font-bold hover:bg-purple-900 transition-colors" title="Export สรุปรายปีย้อนหลัง"><Download className="w-4 h-4" /><span className="hidden sm:inline">Export</span></button>
+                        </div>
+                        {isYearlyHistoryOpen && <div className="bg-white border border-t-0 border-purple-200 p-4">
+                            <div className="flex flex-wrap items-center gap-2 mb-4"><label htmlFor="years-back" className="text-xs font-semibold text-gray-600">ดูย้อนหลัง</label><input id="years-back" type="number" min="1" value={yearsBack} onChange={(e) => setYearsBack(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 border border-purple-300 rounded-lg px-2 py-2 text-center text-xs font-bold text-[#6B21A8]" /><span className="text-xs font-semibold text-gray-600">ปี</span></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{displayedYearlyData.map((data) => <div key={data.year} className="rounded-xl border border-gray-200 p-3 hover:border-purple-300"><div className="flex justify-between"><span className="text-sm font-bold text-gray-800">ปี {data.year}</span><span className="text-sm font-black text-purple-900">{data.totalRepairs} รายการ</span></div><div className="mt-2 flex gap-3 text-[11px] text-gray-500">{data.categories.map((category) => <span key={category.name}>{category.name}: {category.count}</span>)}</div><button onClick={() => setSelectedHistoryYear(data.year)} className="mt-2 text-xs font-bold text-[#6B21A8] hover:underline"><Eye className="w-3.5 h-3.5 inline mr-1" />ดูรายละเอียด</button></div>)}</div>
+                        </div>}
                     </div>
                 </div>
             </main>
@@ -1779,7 +1937,23 @@ export default function ComplaintsPage() {
                         <div className="mb-4">
                             <label className="block text-xs font-semibold text-gray-600 mb-1.5">ไฟล์ภาพ</label>
                             <button
-                                onClick={() => setViewImageModal(true)}
+                                onClick={async () => {
+                                    setViewImageModal(true);
+                                    if (!activeComplaint.imageUrl || activeComplaint.imageUrl === '/photo/ปัญหาสายชำระชำรุด.jpg') {
+                                        try {
+                                            setIsLoadingImage(true);
+                                            const res = await fetch(`/api/requests/${activeComplaint.id}`);
+                                            const data = await res.json();
+                                            if (data.success && data.data?.image_url) {
+                                                setActiveComplaint((prev) => prev ? { ...prev, imageUrl: data.data.image_url } : null);
+                                            }
+                                        } catch (err) {
+                                            console.error('Failed to load image on demand:', err);
+                                        } finally {
+                                            setIsLoadingImage(false);
+                                        }
+                                    }
+                                }}
                                 className="w-full flex items-center justify-between border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-600 hover:border-purple-400 hover:bg-purple-50/30 transition-colors"
                             >
                                 <span className="flex items-center gap-2 truncate">
@@ -1898,12 +2072,23 @@ export default function ComplaintsPage() {
                         <h4 className="text-sm font-bold text-gray-800 mb-3">
                             รูปภาพประกอบ: {activeComplaint.code}
                         </h4>
-                        <div className="rounded-xl overflow-hidden bg-gray-100 max-h-[70vh] flex items-center justify-center">
-                            <img
-                                src={activeComplaint.imageUrl}
-                                alt="รูปภาพความเสียหาย"
-                                className="w-full h-full object-contain"
-                            />
+                        <div className="rounded-xl overflow-hidden bg-gray-100 min-h-[200px] max-h-[70vh] flex items-center justify-center">
+                            {isLoadingImage ? (
+                                <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-500">
+                                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                                    <span className="text-xs font-medium">กำลังโหลดรูปภาพประกอบ...</span>
+                                </div>
+                            ) : activeComplaint.imageUrl ? (
+                                <img
+                                    src={activeComplaint.imageUrl}
+                                    alt="รูปภาพความเสียหาย"
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="py-12 text-gray-400 text-xs text-center">
+                                    ไม่มีรูปภาพแนบสำหรับรายการนี้
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

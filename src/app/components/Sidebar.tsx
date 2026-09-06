@@ -30,7 +30,7 @@ export default function Sidebar({ isMobileOpen = false, setIsMobileOpen }: Sideb
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard Overview", path: "/Admin/Dashboard/Overview" },
     { icon: Wrench, label: "รายการแจ้งซ่อม", path: "/Admin/Dashboard/complaints" },
-    { icon: Clock, label: "รายงานความคืบหน้า", path: "/Admin/Dashboard/progress_report" },
+    { icon: Clock, label: "ประวัติรายการแจ้งซ่อม", path: "/Admin/Dashboard/progress_report" },
     { icon: Users, label: "สถานะห้องน้ำ", path: "/Admin/Dashboard/restroom_status" },
   ];
 

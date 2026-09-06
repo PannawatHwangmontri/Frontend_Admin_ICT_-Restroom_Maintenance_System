@@ -54,28 +54,28 @@ const categorySummary = [
                 name: 'ก๊อกน้ำอ่างล้างมือเสีย 4 ชุด',
                 count: 4,
                 subItems: [
-                    { id: '#AW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 10:00 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AW1-02', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 10:30 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-03', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 11:15 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-04', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 11:45 น.', status: 'แจ้งแล้ว' },
+                    { id: '#AW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 10:00 น.', status: 'รับเรื่อง' },
+                    { id: '#AW1-02', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 10:30 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-03', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 11:15 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-04', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'ก๊อกน้ำอ่างล้างมือเสีย 1 ชุด', time: '20/07/2026 11:45 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'ท่อน้ำรั่ว 3 จุด',
                 count: 3,
                 subItems: [
-                    { id: '#AW1-05', location: 'ห้องน้ำหญิง ชั้น 1 โซน B', detail: 'ท่อน้ำรั่ว 1 จุด ใต้เคาน์เตอร์', time: '20/07/2026 09:15 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-06', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'ท่อน้ำรั่วซึม บริเวณวาล์ว', time: '20/07/2026 13:20 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-07', location: 'ห้องน้ำชาย ชั้น 1 โซน B', detail: 'ท่อน้ำทิ้งรั่วซึม', time: '20/07/2026 14:05 น.', status: 'แจ้งแล้ว' },
+                    { id: '#AW1-05', location: 'ห้องน้ำหญิง ชั้น 1 โซน B', detail: 'ท่อน้ำรั่ว 1 จุด ใต้เคาน์เตอร์', time: '20/07/2026 09:15 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-06', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'ท่อน้ำรั่วซึม บริเวณวาล์ว', time: '20/07/2026 13:20 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-07', location: 'ห้องน้ำชาย ชั้น 1 โซน B', detail: 'ท่อน้ำทิ้งรั่วซึม', time: '20/07/2026 14:05 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'สายฉีดชำระเสีย 3 ชุด',
                 count: 3,
                 subItems: [
-                    { id: '#AW1-08', location: 'ห้องน้ำหญิง ชั้น 2 โซน B', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 08:30 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-09', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 10:10 น.', status: 'แจ้งแล้ว' },
-                    { id: '#AM1-10', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 12:45 น.', status: 'แจ้งแล้ว' },
+                    { id: '#AW1-08', location: 'ห้องน้ำหญิง ชั้น 2 โซน B', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 08:30 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-09', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 10:10 น.', status: 'รับเรื่อง' },
+                    { id: '#AM1-10', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'สายฉีดชำระเสีย 1 ชุด', time: '20/07/2026 12:45 น.', status: 'รับเรื่อง' },
                 ]
             },
         ],
@@ -92,28 +92,28 @@ const categorySummary = [
                 name: 'อ่างล้างมือชำรุด 5 ชุด',
                 count: 5,
                 subItems: [
-                    { id: '#BW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 09:00 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BW1-02', location: 'ห้องน้ำหญิง ชั้น 1 โซน B', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 09:30 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BW1-03', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 10:00 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BM1-04', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 11:00 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BM1-05', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 11:30 น.', status: 'แจ้งแล้ว' },
+                    { id: '#BW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 09:00 น.', status: 'รับเรื่อง' },
+                    { id: '#BW1-02', location: 'ห้องน้ำหญิง ชั้น 1 โซน B', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 09:30 น.', status: 'รับเรื่อง' },
+                    { id: '#BW1-03', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 10:00 น.', status: 'รับเรื่อง' },
+                    { id: '#BM1-04', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 11:00 น.', status: 'รับเรื่อง' },
+                    { id: '#BM1-05', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'อ่างล้างมือชำรุด 1 ชุด', time: '20/07/2026 11:30 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'โถส้วมชำรุด 3 ชุด',
                 count: 3,
                 subItems: [
-                    { id: '#BW1-06', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'โถส้วมชำรุด กดน้ำไม่ลง', time: '20/07/2026 08:45 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BM1-07', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'โถส้วมชำรุด วาล์วค้าง', time: '20/07/2026 09:50 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BM1-08', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'โถส้วมชำรุด 1 ชุด', time: '20/07/2026 12:15 น.', status: 'แจ้งแล้ว' },
+                    { id: '#BW1-06', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'โถส้วมชำรุด กดน้ำไม่ลง', time: '20/07/2026 08:45 น.', status: 'รับเรื่อง' },
+                    { id: '#BM1-07', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'โถส้วมชำรุด วาล์วค้าง', time: '20/07/2026 09:50 น.', status: 'รับเรื่อง' },
+                    { id: '#BM1-08', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'โถส้วมชำรุด 1 ชุด', time: '20/07/2026 12:15 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'ฝารองนั่งชำรุด 2 ชุด',
                 count: 2,
                 subItems: [
-                    { id: '#BW1-09', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'ฝารองนั่งแตกหัก', time: '20/07/2026 10:20 น.', status: 'แจ้งแล้ว' },
-                    { id: '#BM1-10', location: 'ห้องน้ำชาย ชั้น 2 โซน B', detail: 'ฝารองนั่งหลุด', time: '20/07/2026 13:00 น.', status: 'แจ้งแล้ว' },
+                    { id: '#BW1-09', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'ฝารองนั่งแตกหัก', time: '20/07/2026 10:20 น.', status: 'รับเรื่อง' },
+                    { id: '#BM1-10', location: 'ห้องน้ำชาย ชั้น 2 โซน B', detail: 'ฝารองนั่งหลุด', time: '20/07/2026 13:00 น.', status: 'รับเรื่อง' },
                 ]
             },
         ],
@@ -130,27 +130,27 @@ const categorySummary = [
                 name: 'ไฟในห้องน้ำไม่ติด 4 ดวง',
                 count: 4,
                 subItems: [
-                    { id: '#EW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 08:15 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EW1-02', location: 'ห้องน้ำหญิง ชั้น 3 โซน B', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 09:40 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EM1-03', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 10:15 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EM1-04', location: 'ห้องน้ำชาย ชั้น 2 โซน B', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 14:30 น.', status: 'แจ้งแล้ว' },
+                    { id: '#EW1-01', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 08:15 น.', status: 'รับเรื่อง' },
+                    { id: '#EW1-02', location: 'ห้องน้ำหญิง ชั้น 3 โซน B', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 09:40 น.', status: 'รับเรื่อง' },
+                    { id: '#EM1-03', location: 'ห้องน้ำชาย ชั้น 1 โซน A', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 10:15 น.', status: 'รับเรื่อง' },
+                    { id: '#EM1-04', location: 'ห้องน้ำชาย ชั้น 2 โซน B', detail: 'ไฟในห้องน้ำไม่ติด 1 ดวง', time: '20/07/2026 14:30 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'หลอดไฟเสีย 3 ดวง',
                 count: 3,
                 subItems: [
-                    { id: '#EW1-05', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 09:00 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EM1-06', location: 'ห้องน้ำชาย ชั้น 1 โซน B', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 11:20 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EM1-07', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 13:50 น.', status: 'แจ้งแล้ว' },
+                    { id: '#EW1-05', location: 'ห้องน้ำหญิง ชั้น 2 โซน A', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 09:00 น.', status: 'รับเรื่อง' },
+                    { id: '#EM1-06', location: 'ห้องน้ำชาย ชั้น 1 โซน B', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 11:20 น.', status: 'รับเรื่อง' },
+                    { id: '#EM1-07', location: 'ห้องน้ำชาย ชั้น 3 โซน A', detail: 'หลอดไฟเสีย 1 ดวง', time: '20/07/2026 13:50 น.', status: 'รับเรื่อง' },
                 ]
             },
             {
                 name: 'ไฟกระพริบ 2 ดวง',
                 count: 2,
                 subItems: [
-                    { id: '#EW1-08', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ไฟกระพริบ ถี่มาก', time: '20/07/2026 10:05 น.', status: 'แจ้งแล้ว' },
-                    { id: '#EM1-09', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'ไฟกระพริบ ไม่สว่าง', time: '20/07/2026 12:00 น.', status: 'แจ้งแล้ว' },
+                    { id: '#EW1-08', location: 'ห้องน้ำหญิง ชั้น 1 โซน A', detail: 'ไฟกระพริบ ถี่มาก', time: '20/07/2026 10:05 น.', status: 'รับเรื่อง' },
+                    { id: '#EM1-09', location: 'ห้องน้ำชาย ชั้น 2 โซน A', detail: 'ไฟกระพริบ ไม่สว่าง', time: '20/07/2026 12:00 น.', status: 'รับเรื่อง' },
                 ]
             },
         ],
@@ -165,7 +165,7 @@ const duplicateReports = [
         count: 6,
         lastReported: '10 นาทีที่แล้ว',
         subItems: [
-            { id: '#REP-01', location: 'ห้องน้ำชาย ชั้น 2 โซน A (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด น้ำรั่วซึม', time: '20/07/2026 10:50 น.', status: 'แจ้งแล้ว' },
+            { id: '#REP-01', location: 'ห้องน้ำชาย ชั้น 2 โซน A (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด น้ำรั่วซึม', time: '20/07/2026 10:50 น.', status: 'รับเรื่อง' },
             { id: '#REP-02', location: 'ห้องน้ำชาย ชั้น 2 โซน A (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด Head แตก', time: '20/07/2026 10:45 น.', status: 'ไม่รับเรื่อง' },
             { id: '#REP-03', location: 'ห้องน้ำชาย ชั้น 2 โซน A (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด กดไม่ลง', time: '20/07/2026 10:30 น.', status: 'ไม่รับเรื่อง' },
             { id: '#REP-04', location: 'ห้องน้ำชาย ชั้น 2 โซน A (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด น้ำไม่ไหล', time: '20/07/2026 10:15 น.', status: 'ไม่รับเรื่อง' },
@@ -179,7 +179,7 @@ const duplicateReports = [
         count: 4,
         lastReported: '45 นาทีที่แล้ว',
         subItems: [
-            { id: '#REP-07', location: 'ห้องน้ำหญิง ชั้น 1 (ห้องที่ 1)', detail: 'โถส้วมชำรุด กดไม่ลง', time: '20/07/2026 10:15 น.', status: 'แจ้งแล้ว' },
+            { id: '#REP-07', location: 'ห้องน้ำหญิง ชั้น 1 (ห้องที่ 1)', detail: 'โถส้วมชำรุด กดไม่ลง', time: '20/07/2026 10:15 น.', status: 'รับเรื่อง' },
             { id: '#REP-08', location: 'ห้องน้ำหญิง ชั้น 1 (ห้องที่ 1)', detail: 'โถส้วมชำรุด น้ำค้าง', time: '20/07/2026 10:00 น.', status: 'ไม่รับเรื่อง' },
             { id: '#REP-09', location: 'ห้องน้ำหญิง ชั้น 1 (ห้องที่ 1)', detail: 'โถส้วมชำรุด กดไม่ลง', time: '20/07/2026 09:40 น.', status: 'ไม่รับเรื่อง' },
             { id: '#REP-10', location: 'ห้องน้ำหญิง ชั้น 1 (ห้องที่ 1)', detail: 'โถส้วมชำรุด', time: '20/07/2026 09:15 น.', status: 'ไม่รับเรื่อง' },
@@ -191,7 +191,7 @@ const duplicateReports = [
         count: 3,
         lastReported: '2 ชั่วโมงที่แล้ว',
         subItems: [
-            { id: '#REP-11', location: 'ห้องน้ำชาย ชั้น 3 (ห้องที่ 1)', detail: 'สายฉีดชำระรั่ว', time: '20/07/2026 09:00 น.', status: 'แจ้งแล้ว' },
+            { id: '#REP-11', location: 'ห้องน้ำชาย ชั้น 3 (ห้องที่ 1)', detail: 'สายฉีดชำระรั่ว', time: '20/07/2026 09:00 น.', status: 'รับเรื่อง' },
             { id: '#REP-12', location: 'ห้องน้ำชาย ชั้น 3 (ห้องที่ 1)', detail: 'สายฉีดชำระหลุด', time: '20/07/2026 08:45 น.', status: 'ไม่รับเรื่อง' },
             { id: '#REP-13', location: 'ห้องน้ำชาย ชั้น 3 (ห้องที่ 1)', detail: 'สายฉีดชำระชำรุด', time: '20/07/2026 08:30 น.', status: 'ไม่รับเรื่อง' },
         ]
@@ -202,7 +202,7 @@ const duplicateReports = [
         count: 2,
         lastReported: '5 ชั่วโมงที่แล้ว',
         subItems: [
-            { id: '#REP-14', location: 'ห้องน้ำหญิง ชั้น 2 (อ่างที่ 2)', detail: 'อ่างล้างมือระบายน้ำช้า', time: '20/07/2026 06:00 น.', status: 'แจ้งแล้ว' },
+            { id: '#REP-14', location: 'ห้องน้ำหญิง ชั้น 2 (อ่างที่ 2)', detail: 'อ่างล้างมือระบายน้ำช้า', time: '20/07/2026 06:00 น.', status: 'รับเรื่อง' },
             { id: '#REP-15', location: 'ห้องน้ำหญิง ชั้น 2 (อ่างที่ 2)', detail: 'อ่างล้างมือตัน', time: '20/07/2026 05:30 น.', status: 'ไม่รับเรื่อง' },
         ]
     },
@@ -212,7 +212,7 @@ const duplicateReports = [
         count: 2,
         lastReported: '1 วันที่แล้ว',
         subItems: [
-            { id: '#REP-16', location: 'ห้องน้ำชาย ชั้น 1', detail: 'หลอดไฟดับสนิท', time: '19/07/2026 15:00 น.', status: 'แจ้งแล้ว' },
+            { id: '#REP-16', location: 'ห้องน้ำชาย ชั้น 1', detail: 'หลอดไฟดับสนิท', time: '19/07/2026 15:00 น.', status: 'รับเรื่อง' },
             { id: '#REP-17', location: 'ห้องน้ำชาย ชั้น 1', detail: 'หลอดไฟเสีย', time: '19/07/2026 14:00 น.', status: 'ไม่รับเรื่อง' },
         ]
     },
@@ -227,8 +227,14 @@ const getSubItems = (item: any) => {
         location: item.title || `${item.category || 'ทั่วไป'} - จุดที่ ${i + 1}`,
         detail: item.name || item.title || 'รายการแจ้งความเสียหาย',
         time: item.lastReported || '20/07/2026 10:00 น.',
-        status: i === 0 ? 'แจ้งแล้ว' : 'ไม่รับเรื่อง'
+        status: i === 0 ? 'รับเรื่อง' : 'ไม่รับเรื่อง'
     }));
+};
+
+const normalizeStatus = (status: any) => {
+    if (['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(status)) return 'รับเรื่อง';
+    if (['ไม่รับเรื่อง', 'ยกเลิก'].includes(status)) return 'ไม่รับเรื่อง';
+    return 'รอรับเรื่อง';
 };
 
 // Custom Component สำหรับจุดกราฟ
@@ -282,11 +288,11 @@ export default function Dashboard() {
     const [rawRequests, setRawRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // ดึงข้อมูลจริงจาก Backend API
-    const fetchRequests = async () => {
+    // ดึงข้อมูลจริงจาก Backend API (เฉพาะครั้งแรกที่แสดง Loader เพื่อไม่ให้ UI กระตุก)
+    const fetchRequests = async (isInitial = false) => {
         try {
-            setIsLoading(true);
-            const res = await fetch('/api/requests');
+            if (isInitial) setIsLoading(true);
+            const res = await fetch('/api/requests', { cache: 'no-store' });
             const result = await res.json();
             if (result.success && Array.isArray(result.data)) {
                 setRawRequests(result.data);
@@ -294,12 +300,26 @@ export default function Dashboard() {
         } catch (error) {
             console.error('Failed to fetch requests in Overview:', error);
         } finally {
-            setIsLoading(false);
+            if (isInitial) setIsLoading(false);
         }
     };
 
     React.useEffect(() => {
-        fetchRequests();
+        fetchRequests(true);
+
+        const refreshOnReturn = () => {
+            if (document.visibilityState === 'visible') fetchRequests(false);
+        };
+
+        window.addEventListener('focus', refreshOnReturn);
+        document.addEventListener('visibilitychange', refreshOnReturn);
+        const refreshInterval = window.setInterval(refreshOnReturn, 15000);
+
+        return () => {
+            window.removeEventListener('focus', refreshOnReturn);
+            document.removeEventListener('visibilitychange', refreshOnReturn);
+            window.clearInterval(refreshInterval);
+        };
     }, []);
 
     // 1. คำนวณ Metric Cards (เดือนนี้)
@@ -329,8 +349,8 @@ export default function Dashboard() {
             diffPercent = 100;
         }
 
-        const acceptedCount = currentMonthReqs.filter(r => r.status === 'แจ้งแล้ว' || r.status === 'กำลังดำเนินการ' || r.status === 'เสร็จสิ้น').length;
-        const rejectedCount = currentMonthReqs.filter(r => r.status === 'ไม่รับเรื่อง' || r.status === 'ยกเลิก').length;
+        const acceptedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'รับเรื่อง').length;
+        const rejectedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'ไม่รับเรื่อง').length;
 
         return {
             totalThisMonth: rawRequests.length > 0 ? totalThisMonth : 0,
@@ -368,12 +388,30 @@ export default function Dashboard() {
             'ระบบไฟฟ้า': { title: 'ระบบไฟฟ้า', icon: Zap, color: 'text-amber-600', bgColor: 'bg-amber-50/70', borderColor: 'border-amber-100', itemsMap: {} },
         };
 
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
         rawRequests.forEach(r => {
+            const reportedDate = new Date(r.reported_at || Date.now());
+            if (reportedDate.getFullYear() !== currentYear || reportedDate.getMonth() !== currentMonth) {
+                return;
+            }
+
             const summary = r.issue_summary || '';
             let catKey = 'ระบบน้ำ';
-            if (summary.includes('ไฟ') || summary.includes('หลอดไฟ') || summary.includes('ปลั๊ก')) {
+            if (summary.includes('ไฟ') || summary.includes('หลอดไฟ') || summary.includes('ปลั๊ก') || summary.includes('สวิตช์')) {
                 catKey = 'ระบบไฟฟ้า';
-            } else if (summary.includes('ส้วม') || summary.includes('โถ') || summary.includes('อ่าง') || summary.includes('กระจก') || summary.includes('ประตู')) {
+            } else if (
+                summary.includes('ส้วม') ||
+                summary.includes('โถ') ||
+                summary.includes('อ่าง') ||
+                summary.includes('กระจก') ||
+                summary.includes('ประตู') ||
+                summary.includes('ชักโครก') ||
+                summary.includes('ฝารองนั่ง') ||
+                summary.includes('สุขภัณฑ์')
+            ) {
                 catKey = 'สุขภัณฑ์';
             }
 
@@ -382,7 +420,6 @@ export default function Dashboard() {
                 defaultCats[catKey].itemsMap[problemName] = [];
             }
 
-            const reportedDate = r.reported_at ? new Date(r.reported_at) : new Date();
             const timeStr = reportedDate.toLocaleString('th-TH', {
                 day: '2-digit', month: '2-digit', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
@@ -393,7 +430,7 @@ export default function Dashboard() {
                 location: r.location || 'ไม่ระบุสถานที่',
                 detail: r.issue_summary || 'ไม่มีรายละเอียด',
                 time: timeStr,
-                status: r.status || 'รอรับเรื่อง'
+                status: normalizeStatus(r.status)
             });
         });
 
@@ -418,11 +455,19 @@ export default function Dashboard() {
         });
     }, [rawRequests]);
 
-    // 4. คำนวณรายการแจ้งซ้ำจาก DB จริง
+    // 4. คำนวณรายการแจ้งซ้ำจาก DB จริง (เฉพาะเดือนปัจจุบัน)
     const duplicateReports = React.useMemo(() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
         const groupMap: { [key: string]: any[] } = {};
 
         rawRequests.forEach(r => {
+            const reportedDate = new Date(r.reported_at || Date.now());
+            if (reportedDate.getFullYear() !== currentYear || reportedDate.getMonth() !== currentMonth) {
+                return;
+            }
+
             const key = `${r.location || ''} - ${r.issue_summary || ''}`;
             if (!groupMap[key]) groupMap[key] = [];
             groupMap[key].push(r);
@@ -445,7 +490,7 @@ export default function Dashboard() {
                         location: item.location || 'ไม่ระบุสถานที่',
                         detail: item.issue_summary || 'ไม่มีรายละเอียด',
                         time: d.toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.',
-                        status: item.status || 'รอรับเรื่อง'
+                        status: normalizeStatus(item.status)
                     };
                 });
 
@@ -479,9 +524,18 @@ export default function Dashboard() {
         const catCount: { [key: string]: number } = { 'ระบบน้ำ': 0, 'สุขภัณฑ์': 0, 'ระบบไฟฟ้า': 0 };
         monthReqs.forEach(r => {
             const s = r.issue_summary || '';
-            if (s.includes('ไฟ') || s.includes('หลอดไฟ') || s.includes('ปลั๊ก')) {
+            if (s.includes('ไฟ') || s.includes('หลอดไฟ') || s.includes('ปลั๊ก') || s.includes('สวิตช์')) {
                 catCount['ระบบไฟฟ้า']++;
-            } else if (s.includes('ส้วม') || s.includes('โถ') || s.includes('อ่าง') || s.includes('กระจก') || s.includes('ประตู')) {
+            } else if (
+                s.includes('ส้วม') ||
+                s.includes('โถ') ||
+                s.includes('อ่าง') ||
+                s.includes('กระจก') ||
+                s.includes('ประตู') ||
+                s.includes('ชักโครก') ||
+                s.includes('ฝารองนั่ง') ||
+                s.includes('สุขภัณฑ์')
+            ) {
                 catCount['สุขภัณฑ์']++;
             } else {
                 catCount['ระบบน้ำ']++;
@@ -504,9 +558,9 @@ export default function Dashboard() {
         const topLocCount = topLoc ? topLoc[1] : 0;
 
         // รายการรอรับเรื่อง
-        const pendingCount = monthReqs.filter(r => r.status === 'รอรับเรื่อง').length;
+        const pendingCount = monthReqs.filter(r => normalizeStatus(r.status) === 'รอรับเรื่อง').length;
         // อัตราการรับเรื่อง
-        const acceptedCount = monthReqs.filter(r => ['แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(r.status)).length;
+        const acceptedCount = monthReqs.filter(r => normalizeStatus(r.status) === 'รับเรื่อง').length;
         const acceptRate = total > 0 ? Math.round((acceptedCount / total) * 100) : 0;
 
         // รายการแจ้งซ้ำ (สถานที่+ปัญหาเดิม)
@@ -684,21 +738,10 @@ export default function Dashboard() {
 
                 {/* ---------------- ตารางสรุปแยกหมวดหมู่ ---------------- */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div className="mb-4">
                         <h3 className="text-base font-bold text-[#6B21A8]">
                             สรุปรายการความเสียหาย แยกตามหมวดหมู่
                         </h3>
-                        <button
-                            onClick={() => setSelectedItem({
-                                category: categorySummary[0].title,
-                                name: 'รายการความเสียหายทั้งหมดในหมวดหมู่นี้',
-                                count: categorySummary[0].totalCount,
-                                subItems: categorySummary[0].items.flatMap(i => i.subItems)
-                            })}
-                            className="text-xs text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200 font-medium transition-colors text-right self-start sm:self-auto"
-                        >
-                            คลิกเพื่อดูรายการแจ้งซ่อม
-                        </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -938,12 +981,14 @@ export default function Dashboard() {
                                                     </p>
                                                 </div>
                                                 <span
-                                                    className={`font-bold text-xs px-3 py-1 rounded-xl shrink-0 ${sub.status === 'แจ้งแล้ว'
+                                                    className={`font-bold text-xs px-3 py-1 rounded-xl shrink-0 ${sub.status === 'รับเรื่อง'
                                                         ? 'bg-[#DCFCE7] text-[#15803D]'
-                                                        : 'bg-red-100 text-red-600'
+                                                        : sub.status === 'ไม่รับเรื่อง'
+                                                            ? 'bg-red-100 text-red-600'
+                                                            : 'bg-yellow-100 text-yellow-600'
                                                         }`}
                                                 >
-                                                    {sub.status || 'แจ้งแล้ว'}
+                                                    {sub.status || 'รอรับเรื่อง'}
                                                 </span>
                                             </div>
                                         ))}

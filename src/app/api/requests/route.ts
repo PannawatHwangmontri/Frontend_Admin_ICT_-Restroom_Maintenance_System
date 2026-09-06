@@ -4,7 +4,8 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 export async function GET(req: NextRequest) {
     try {
-        const backendRes = await fetch(`${BACKEND_URL}/api/requests`, {
+        const search = req.nextUrl.search || '';
+        const backendRes = await fetch(`${BACKEND_URL}/api/requests${search}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
             cache: 'no-store',

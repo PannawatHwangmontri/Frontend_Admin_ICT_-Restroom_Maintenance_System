@@ -150,7 +150,7 @@ export default function ProgressReportPage() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
-    // State จัดการ Dropdown เลือกชั้นและโซน
+    // State จัดการ Dropdown เลือกชั้นและโซน 
     const [isFloorDropdownOpen, setIsFloorDropdownOpen] = useState(false);
     const [selectedFloor, setSelectedFloor] = useState('ทั้งหมด');
     const [selectedZone, setSelectedZone] = useState('');
@@ -169,9 +169,9 @@ export default function ProgressReportPage() {
     const fetchRequests = async () => {
         try {
             setIsLoading(true);
-            const res = await fetch('/api/requests');
+            const res = await fetch('/api/requests', { cache: 'no-store' });
             const result = await res.json();
-            if (result.success && Array.isArray(result.data)) {
+            if (res.ok && result.success && Array.isArray(result.data)) {
                 const mapped = result.data.map((item: any) => {
                     const d = item.reported_at ? new Date(item.reported_at) : new Date();
                     const dateStr = d.toLocaleDateString('th-TH', {
@@ -197,13 +197,12 @@ export default function ProgressReportPage() {
                     else if (loc.includes('ชั้น 3')) floorName = 'ชั้น 3';
                     else if (loc.includes('ชั้น 4')) floorName = 'ชั้น 4';
 
-                    // กำหนดสถานะมาตรฐาน 3 สถานะ
-                    let currentStatus = 'รอรับเรื่อง';
-                    if (item.status === 'รับเรื่อง' || item.status === 'แจ้งแล้ว' || item.status === 'กำลังดำเนินการ' || item.status === 'เสร็จสิ้น') {
-                        currentStatus = 'รับเรื่อง';
-                    } else if (item.status === 'ไม่รับเรื่อง' || item.status === 'ยกเลิก') {
-                        currentStatus = 'ไม่รับเรื่อง';
-                    }
+                    // รับเฉพาะสถานะมาตรฐาน 3 สถานะ
+                    const currentStatus = ['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(item.status)
+                        ? 'รับเรื่อง'
+                        : ['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)
+                            ? 'ไม่รับเรื่อง'
+                            : 'รอรับเรื่อง';
 
                     return {
                         id: String(item.id),
@@ -214,7 +213,7 @@ export default function ProgressReportPage() {
                         location: loc || 'ไม่ระบุสถานที่',
                         category: cat,
                         problem: item.issue_summary || 'ไม่มีรายละเอียด',
-                        severity: item.priority === 'HIGH' || item.priority === 'URGENT' ? 'เร่งด่วน' : 'ปกติ',
+                        severity: ['สูง', 'วิกฤต', 'HIGH', 'URGENT'].includes(item.priority) ? 'เร่งด่วน' : 'ปกติ',
                         status: currentStatus,
                         remark: item.remark || '',
                         imageUrl: item.image_url || null,
@@ -222,11 +221,13 @@ export default function ProgressReportPage() {
                 });
                 setReportList(mapped);
             } else {
-                setReportList(initialReportList);
+                setReportList([]);
+                showToast(result.message || 'ไม่พบข้อมูลจาก Backend');
             }
         } catch (error) {
             console.error('Failed to fetch requests in progress_report:', error);
-            setReportList(initialReportList);
+            setReportList([]);
+            showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Backend');
         } finally {
             setIsLoading(false);
         }
@@ -399,7 +400,7 @@ export default function ProgressReportPage() {
                             <Menu className="w-6 h-6" />
                         </button>
                         <h2 className="text-xl sm:text-2xl font-bold text-[#4C1D95] truncate">
-                            รายงานความคืบหน้า
+                            ประวัติรายการแจ้งซ่อม
                         </h2>
                     </div>
 
@@ -540,7 +541,7 @@ export default function ProgressReportPage() {
                     {/* Table Header Action Bar */}
                     <div className="bg-[#6B21A8] text-white px-4 py-3.5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-sm sm:text-base">ติดตามสถานะการแจ้งซ่อม</h3>
+                            <h3 className="font-bold text-sm sm:text-base">ประวัติรายการแจ้งซ่อมทั้งหมด</h3>
                             {selectedIds.length > 0 && (
                                 <span className="bg-purple-800 text-purple-100 text-xs px-2.5 py-0.5 rounded-full font-medium">
                                     เลือก {selectedIds.length} รายการ
@@ -651,7 +652,6 @@ export default function ProgressReportPage() {
                                                         {item.severity}
                                                     </span>
                                                 </td>
-                                                {/* แสดงสถานะแบบ ดูได้อย่างเดียว (Read-Only) */}
                                                 <td className="p-3 text-center">
                                                     {renderStatusBadge(item.status)}
                                                 </td>

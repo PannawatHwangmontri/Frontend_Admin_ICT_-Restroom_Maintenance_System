@@ -177,8 +177,8 @@ export default function ComplaintsPage() {
     const [deleteModeTable, setDeleteModeTable] = useState<'latest' | 'all' | null>(null);
 
     // State จัดการ Dropdown ยุบ/คลี่ตาราง
-    const [isLatestOpen, setIsLatestOpen] = useState(false);
-    const [isAllOpen, setIsAllOpen] = useState(false);
+    const [isLatestOpen, setIsLatestOpen] = useState(true);
+    const [isAllOpen, setIsAllOpen] = useState(true);
 
     const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');

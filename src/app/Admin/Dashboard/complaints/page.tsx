@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useOpenMobileMenu } from '@/components/MobileMenuContext';
 import {
     LayoutDashboard,
@@ -214,10 +214,15 @@ export default function ComplaintsPage() {
         setTimeout(() => setToastMessage(''), 3500);
     };
 
+    const isUpdatingRef = useRef(isUpdating);
+    useEffect(() => {
+        isUpdatingRef.current = isUpdating;
+    }, [isUpdating]);
+
     // ดึงข้อมูลรายการแจ้งซ่อมจริงจาก Backend API
-    const fetchComplaints = async () => {
+    const fetchComplaints = async (isInitial = false) => {
         try {
-            setIsLoading(true);
+            if (isInitial) setIsLoading(true);
 
             const res = await fetch('/api/requests', { cache: 'no-store' });
             const result = await res.json();
@@ -297,20 +302,40 @@ export default function ComplaintsPage() {
 
                 setComplaints(mapped);
             } else {
-                setComplaints([]);
-                showToast(result.message || 'ไม่พบข้อมูลจาก Backend');
+                if (isInitial) {
+                    setComplaints([]);
+                    showToast(result.message || 'ไม่พบข้อมูลจาก Backend');
+                }
             }
         } catch (error) {
             console.error('Failed to fetch complaints:', error);
-            showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Backend');
-            setComplaints([]);
+            if (isInitial) {
+                showToast('เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Backend');
+                setComplaints([]);
+            }
         } finally {
-            setIsLoading(false);
+            if (isInitial) setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchComplaints();
+        fetchComplaints(true);
+
+        const refreshData = () => {
+            if (document.visibilityState === 'visible' && !isUpdatingRef.current) {
+                fetchComplaints(false);
+            }
+        };
+
+        window.addEventListener('focus', refreshData);
+        document.addEventListener('visibilitychange', refreshData);
+        const interval = setInterval(refreshData, 4000);
+
+        return () => {
+            window.removeEventListener('focus', refreshData);
+            document.removeEventListener('visibilitychange', refreshData);
+            clearInterval(interval);
+        };
     }, []);
 
     const filteredComplaints = useMemo(() => {

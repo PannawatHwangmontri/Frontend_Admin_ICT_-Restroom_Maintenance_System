@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useOpenMobileMenu } from '@/components/MobileMenuContext';
 import {
     LayoutDashboard,
@@ -349,15 +350,53 @@ export default function Dashboard() {
             diffPercent = 100;
         }
 
+        const pendingCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'รอรับเรื่อง').length;
         const acceptedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'รับเรื่อง').length;
         const rejectedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'ไม่รับเรื่อง').length;
 
         return {
             totalThisMonth: rawRequests.length > 0 ? totalThisMonth : 0,
             diffPercent,
+            pendingCount: rawRequests.length > 0 ? pendingCount : 0,
             acceptedCount: rawRequests.length > 0 ? acceptedCount : 0,
             rejectedCount: rawRequests.length > 0 ? rejectedCount : 0,
         };
+    }, [rawRequests]);
+
+    // 1.1 รายการเรื่องที่รอรับจาก DB ในเดือนปัจจุบัน
+    const pendingRequests = React.useMemo(() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        return rawRequests
+            .filter(r => {
+                const d = new Date(r.reported_at || Date.now());
+                return d.getFullYear() === currentYear && d.getMonth() === currentMonth && normalizeStatus(r.status) === 'รอรับเรื่อง';
+            })
+            .sort((a, b) => new Date(b.reported_at || 0).getTime() - new Date(a.reported_at || 0).getTime())
+            .map(r => {
+                const d = new Date(r.reported_at || Date.now());
+                const timeStr = !isNaN(d.getTime())
+                    ? d.toLocaleString('th-TH', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) + ' น.'
+                    : 'ไม่ระบุเวลา';
+
+                return {
+                    id: r.ticket_number || `#REQ-${r.id}`,
+                    dbId: r.id,
+                    location: r.location || 'ไม่ระบุสถานที่',
+                    detail: r.issue_summary || 'ไม่มีรายละเอียดปัญหา',
+                    priority: r.priority || 'ปกติ',
+                    time: timeStr,
+                    status: 'รอรับเรื่อง'
+                };
+            });
     }, [rawRequests]);
 
     // 2. คำนวณข้อมูลกราฟเส้น (31 วันในเดือนนี้)
@@ -648,8 +687,8 @@ export default function Dashboard() {
                     </div>
                 </header>
 
-                {/* ---------------- Summary Metric Cards (3 Cards) ---------------- */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {/* ---------------- Summary Metric Cards (4 Cards) ---------------- */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
                         <p className="text-xs font-medium text-gray-500 mb-1">
                             เรื่องแจ้งทั้งหมด (เดือนนี้)
@@ -661,13 +700,41 @@ export default function Dashboard() {
                         </p>
                     </div>
 
+                    <div
+                        onClick={() => {
+                            if (pendingRequests.length > 0) {
+                                setSelectedItem({
+                                    category: 'เรื่องที่รอรับ',
+                                    title: 'รายการเรื่องที่รอรับ (เดือนปัจจุบัน)',
+                                    name: `เรื่องที่รอรับทั้งหมด (${pendingRequests.length} รายการ)`,
+                                    count: pendingRequests.length,
+                                    subItems: pendingRequests
+                                });
+                            }
+                        }}
+                        className={`bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm transition-all ${pendingRequests.length > 0 ? 'cursor-pointer hover:shadow-md group' : ''
+                            }`}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-medium text-gray-500">เรื่องที่รอรับ</p>
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
+                                เดือนปัจจุบัน
+                            </span>
+                        </div>
+                        <div className="text-4xl font-semibold text-[#D97706] mb-2">{metrics.pendingCount}</div>
+                        <p className="text-xs text-amber-700 font-semibold flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 inline shrink-0" />
+                            <span>{pendingRequests.length > 0 ? 'คลิกดูรายการที่รอรับ' : 'ไม่มีรายการค้างรับ'}</span>
+                        </p>
+                    </div>
+
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
                         <p className="text-xs font-medium text-gray-500 mb-1">รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#108653] mb-2">{metrics.acceptedCount}</div>
                         <p className="text-xs text-gray-400">มีเจ้าหน้าที่รับผิดชอบ</p>
                     </div>
 
-                    <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm sm:col-span-2 lg:col-span-1">
+                    <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
                         <p className="text-xs font-medium text-gray-500 mb-1">ไม่รับเรื่อง</p>
                         <div className="text-4xl font-semibold text-[#e83455] mb-2">{metrics.rejectedCount}</div>
                         <p className="text-xs text-gray-400 font-medium">รายละเอียดข้อมูลซ้ำกัน</p>
@@ -922,11 +989,15 @@ export default function Dashboard() {
                                     <h3 className="font-bold text-base sm:text-lg text-gray-900 leading-snug">
                                         {selectedItem.category === 'รายการแจ้งเรื่องซ้ำ'
                                             ? 'รายละเอียดรายการแจ้งซ่อม'
-                                            : `รายการแจ้งปัญหา: ${selectedItem.category}`}
+                                            : selectedItem.category === 'เรื่องที่รอรับ'
+                                                ? 'รายละเอียดเรื่องที่รอรับ (เดือนปัจจุบัน)'
+                                                : `รายการแจ้งปัญหา: ${selectedItem.category}`}
                                     </h3>
                                     <p className="text-xs font-semibold text-purple-700 mt-0.5">
                                         {selectedItem.category === 'รายการแจ้งเรื่องซ้ำ' ? (
                                             <span>หมวดหมู่: <span className="font-bold text-purple-700">รายการแจ้งเรื่องซ้ำ</span></span>
+                                        ) : selectedItem.category === 'เรื่องที่รอรับ' ? (
+                                            <span>สถานะ: <span className="font-bold text-amber-600">เรื่องที่รอรับ </span></span>
                                         ) : (
                                             <span>รายการความเสียหายเฉพาะ: <span className="font-bold text-purple-700">{selectedItem.name}</span></span>
                                         )}
@@ -961,7 +1032,9 @@ export default function Dashboard() {
                                     <h4 className="font-bold text-xs text-purple-900 mb-2.5">
                                         {selectedItem.category === 'รายการแจ้งเรื่องซ้ำ'
                                             ? `รายการที่แจ้งซ้ำทั้งหมด (${(selectedItem.subItems || getSubItems(selectedItem)).length} รายการ)`
-                                            : `รายการความเสียหายทั้งหมด (${(selectedItem.subItems || getSubItems(selectedItem)).length} รายการ)`}
+                                            : selectedItem.category === 'เรื่องที่รอรับ'
+                                                ? `รายการเรื่องที่รอรับ (${(selectedItem.subItems || getSubItems(selectedItem)).length} รายการ)`
+                                                : `รายการความเสียหายทั้งหมด (${(selectedItem.subItems || getSubItems(selectedItem)).length} รายการ)`}
                                     </h4>
                                     <div className="space-y-2.5">
                                         {(selectedItem.subItems || getSubItems(selectedItem)).map((sub: any, idx: number) => (
@@ -997,7 +1070,16 @@ export default function Dashboard() {
                             </div>
 
                             {/* Footer Button */}
-                            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end shrink-0">
+                            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between shrink-0 gap-2">
+                                {selectedItem.category === 'เรื่องที่รอรับ' ? (
+                                    <Link
+                                        href="/Admin/Dashboard/complaints"
+                                        className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-colors shadow-sm inline-flex items-center gap-1.5"
+                                    >
+                                        <span>ไปจัดการในหน้ารับเรื่อง</span>
+                                        <ChevronRight className="w-4 h-4" />
+                                    </Link>
+                                ) : <div />}
                                 <button
                                     onClick={() => setSelectedItem(null)}
                                     className="px-5 py-2.5 bg-[#6B21A8] hover:bg-purple-800 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useOpenMobileMenu } from '@/components/MobileMenuContext';
 import {
@@ -18,7 +18,9 @@ import {
     CopyCheck,
     Lightbulb,
     ChevronRight,
-    X
+    X,
+    Sparkles,
+    RefreshCw
 } from 'lucide-react';
 import {
     LineChart,
@@ -546,8 +548,8 @@ export default function Dashboard() {
         return duplicates;
     }, [rawRequests]);
 
-    // 5. คำนวณ AI Insight จาก DB จริง (rule-based analysis)
-    const aiInsight = React.useMemo(() => {
+    // 5. คำนวณ AI Insight จาก DB จริง (rule-based analysis เป็น Fallback)
+    const ruleBasedInsight = React.useMemo(() => {
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth();
@@ -647,8 +649,76 @@ export default function Dashboard() {
             summaryText += ` อัตราการรับเรื่อง ${acceptRate}%`;
         }
 
-        return { summaryText, suggestions, total };
+        return {
+            summaryText,
+            suggestions,
+            total,
+            monthReqs,
+            catCount,
+            topCatName,
+            topLocName,
+            topLocCount,
+            pendingCount,
+            acceptedCount,
+        };
     }, [rawRequests]);
+
+    // State สำหรับ Real AI Insight (Gemini API)
+    const [realAiInsight, setRealAiInsight] = useState<{
+        summaryText: string;
+        suggestions: string[];
+        isRealAI: boolean;
+    } | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
+    // ฟังก์ชันเรียก Gemini API จริง
+    const fetchRealAiInsight = async () => {
+        if (ruleBasedInsight.total === 0) return;
+        setIsAiLoading(true);
+        try {
+            const res = await fetch('/api/ai-insight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requests: ruleBasedInsight.monthReqs,
+                    total: ruleBasedInsight.total,
+                    catCount: ruleBasedInsight.catCount,
+                    topCatName: ruleBasedInsight.topCatName,
+                    topLocName: ruleBasedInsight.topLocName,
+                    topLocCount: ruleBasedInsight.topLocCount,
+                    pendingCount: ruleBasedInsight.pendingCount,
+                    acceptedCount: ruleBasedInsight.acceptedCount,
+                }),
+            });
+            const data = await res.json();
+            if (data.success && data.isRealAI) {
+                setRealAiInsight({
+                    summaryText: data.summaryText,
+                    suggestions: data.suggestions,
+                    isRealAI: true,
+                });
+            }
+        } catch (err) {
+            console.warn('[AI Insight] Failed to fetch real AI insight:', err);
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    // ทำงานเมื่อมีข้อมูลแจ้งซ่อม
+    useEffect(() => {
+        if (ruleBasedInsight.total > 0 && !realAiInsight) {
+            fetchRealAiInsight();
+        }
+    }, [ruleBasedInsight.total]);
+
+    // สรุปข้อมูลที่จะนำไปแสดงผล (ถ้า Real AI พร้อมใช้ Real AI ถ้ายังไม่มีให้ใช้ Rule-based สถิติ)
+    const aiInsight = {
+        summaryText: realAiInsight?.summaryText || ruleBasedInsight.summaryText,
+        suggestions: realAiInsight?.suggestions || ruleBasedInsight.suggestions,
+        total: ruleBasedInsight.total,
+        isRealAI: !!realAiInsight?.isRealAI,
+    };
 
     // State สำหรับ Popup / Modal รายละเอียดการแจ้งซ่อม
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -703,9 +773,7 @@ export default function Dashboard() {
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-1">
                             <p className="text-xs font-medium text-gray-500">เรื่องที่รอรับ</p>
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
-                                เดือนปัจจุบัน
-                            </span>
+
                         </div>
                         <div className="text-4xl font-semibold text-[#D97706] mb-2">{metrics.pendingCount}</div>
                         <p className="text-xs text-gray-400">รอเจ้าหน้าที่รับเรื่อง</p>
@@ -900,13 +968,44 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* กล่อง 2: AI Insight ประจำเดือน (คำนวณจากข้อมูลจริง) */}
+                    {/* กล่อง 2: AI Insight ประจำเดือน (ขับเคลื่อนด้วย Google Gemini API จริง) */}
                     <div className="bg-white border border-purple-200 rounded-2xl p-4 md:p-5 shadow-sm flex flex-col">
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="w-7 h-7 bg-[#E9D5FF] rounded-lg flex items-center justify-center text-[#6B21A8] shrink-0">
-                                <Bot className="w-4 h-4" />
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-[#E9D5FF] rounded-lg flex items-center justify-center text-[#6B21A8] shrink-0">
+                                    <Bot className="w-4 h-4" />
+                                </div>
+                                <h3 className="font-bold text-base text-gray-900">AI Insight ประจำเดือน</h3>
                             </div>
-                            <h3 className="font-bold text-base text-gray-900">AI Insight ประจำเดือน</h3>
+
+                            {/* Badge แสดงสถานะว่าเป็น Gemini AI หรือ ระบบสถิติ */}
+                            <div className="flex items-center gap-1.5">
+                                {isAiLoading ? (
+                                    <span className="text-[11px] bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                        <RefreshCw className="w-3 h-3 animate-spin text-purple-600" />
+                                        <span>AI กำลังวิเคราะห์...</span>
+                                    </span>
+                                ) : aiInsight.isRealAI ? (
+                                    <span className="text-[11px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 shadow-xs">
+                                        <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" />
+                                        <span>Gemini AI</span>
+                                    </span>
+                                ) : (
+                                    <span className="text-[11px] bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full font-medium">
+                                        ระบบสถิติ
+                                    </span>
+                                )}
+
+                                {/* ปุ่มกดวิเคราะห์ใหม่ด้วย AI */}
+                                <button
+                                    onClick={fetchRealAiInsight}
+                                    disabled={isAiLoading || ruleBasedInsight.total === 0}
+                                    title="กดเพื่อวิเคราะห์ใหม่ด้วย Gemini AI"
+                                    className="p-1 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${isAiLoading ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
                         </div>
                         <p className="text-xs text-gray-500 mb-3">
                             วิเคราะห์ภาพรวมการแจ้งซ่อมและคำแนะนำเพื่อการบำรุงรักษาเชิงป้องกัน

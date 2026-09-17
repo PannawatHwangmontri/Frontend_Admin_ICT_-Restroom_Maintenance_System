@@ -30,7 +30,9 @@ import {
     ChevronDown,
     Filter,
     Layers,
-    Loader2
+    Loader2,
+    Sparkles,
+    RefreshCw
 } from 'lucide-react';
 
 interface Complaint {
@@ -337,6 +339,87 @@ export default function ComplaintsPage() {
             clearInterval(interval);
         };
     }, []);
+
+    // State สำหรับ AI Insight ประจำเดือน (ขับเคลื่อนด้วย Gemini AI จริง)
+    const [aiInsight, setAiInsight] = useState<{
+        summaryText: string;
+        suggestions: string[];
+        isRealAI: boolean;
+    }>({
+        summaryText: 'กำลังประมวลผลข้อมูลการแจ้งซ่อมประจำเดือน...',
+        suggestions: [
+            'เพิ่มรอบการตรวจเช็คสภาพอุปกรณ์สุขภัณฑ์และสายฉีดชำระเป็นประจำทุกสัปดาห์',
+            'จัดซื้อสำรองอะไหล่ประเภทชุดสายฉีดชำระ วาล์วน้ำ และหลอดไฟ LED ล่วงหน้า',
+            'ดำเนินการเปลี่ยนอุปกรณ์ทันทีที่มีการแจ้งซ้ำเกิน 2 ครั้งในจุดเดียวกัน'
+        ],
+        isRealAI: false,
+    });
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
+    const fetchAiInsight = async () => {
+        if (complaints.length === 0) return;
+        setIsAiLoading(true);
+        try {
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = now.getMonth();
+            const monthComplaints = complaints.filter((c) => {
+                const d = c.rawDate ? new Date(c.rawDate) : new Date(c.date);
+                return d.getFullYear() === curY && d.getMonth() === curM;
+            });
+
+            const catCount: { [k: string]: number } = { 'ระบบน้ำ': 0, 'สุขภัณฑ์': 0, 'ระบบไฟฟ้า': 0 };
+            monthComplaints.forEach((c) => {
+                if (catCount[c.category] !== undefined) catCount[c.category]++;
+            });
+            const sortedCat = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
+            const topCatName = sortedCat[0]?.[0] || 'ระบบน้ำ';
+
+            const locCount: { [k: string]: number } = {};
+            monthComplaints.forEach((c) => {
+                locCount[c.location] = (locCount[c.location] || 0) + 1;
+            });
+            const sortedLoc = Object.entries(locCount).sort((a, b) => b[1] - a[1]);
+            const topLocName = sortedLoc[0]?.[0] || '';
+            const topLocCount = sortedLoc[0]?.[1] || 0;
+
+            const pendingCount = monthComplaints.filter((c) => c.status === 'รอรับเรื่อง').length;
+            const acceptedCount = monthComplaints.filter((c) => c.status === 'รับเรื่อง').length;
+
+            const res = await fetch('/api/ai-insight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requests: monthComplaints.map(c => ({ location: c.location, issue_summary: c.problem, status: c.status })),
+                    total: monthComplaints.length,
+                    catCount,
+                    topCatName,
+                    topLocName,
+                    topLocCount,
+                    pendingCount,
+                    acceptedCount,
+                }),
+            });
+            const data = await res.json();
+            if (data.success && data.isRealAI) {
+                setAiInsight({
+                    summaryText: data.summaryText,
+                    suggestions: data.suggestions,
+                    isRealAI: true,
+                });
+            }
+        } catch (err) {
+            console.warn('[Complaints AI Insight Error]:', err);
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (complaints.length > 0 && !aiInsight.isRealAI) {
+            fetchAiInsight();
+        }
+    }, [complaints.length]);
 
     const filteredComplaints = useMemo(() => {
         return complaints
@@ -742,10 +825,11 @@ export default function ComplaintsPage() {
             filename = `ai_insight_${new Date().toISOString().slice(0, 10)}.csv`;
             headers = ['ส่วนงาน', 'รายละเอียด / ข้อเสนอแนะ'];
             rows = [
-                ['"สรุปภาพรวมปัญหาประจำเดือน"', '"ห้องน้ำชาย ชั้น 2 โซน A มีเรื่องแจ้งซ่อมบ่อยที่สุดในเดือนนี้"'],
-                ['"ข้อเสนอแนะในการปรับปรุง 1"', '"เพิ่มรอบการตรวจเช็คสภาพอุปกรณ์สุขภัณฑ์ชั้น 2 เป็นสัปดาห์ละ 2 ครั้ง"'],
-                ['"ข้อเสนอแนะในการปรับปรุง 2"', '"จัดซื้อสำรองอะไหล่ประเภทชุดสายฉีดชำระและหลอดไฟ LED ล่วงหน้า 15%"'],
-                ['"ข้อเสนอแนะในการปรับปรุง 3"', '"ดำเนินการเปลี่ยนหลอดไฟยกเซ็ตในโซนที่มีการแจ้งไฟกระพริบซ้ำเกิน 3 ครั้ง"']
+                ['"สรุปภาพรวมปัญหาประจำเดือน"', `"${(aiInsight.summaryText || '').replace(/"/g, '""')}"`],
+                ...aiInsight.suggestions.map((s, idx) => [
+                    `"ข้อเสนอแนะในการปรับปรุง ${idx + 1}"`,
+                    `"${s.replace(/"/g, '""')}"`
+                ])
             ];
         }
 
@@ -1489,13 +1573,42 @@ export default function ComplaintsPage() {
                         </div>
                     </div>
 
-                    {/* ส่วนที่ 4: AI Insight ประจำเดือน */}
+                    {/* ส่วนที่ 4: AI Insight ประจำเดือน (ขับเคลื่อนด้วย Gemini AI จริง) */}
                     <div className="bg-white border border-purple-200 rounded-2xl p-4 md:p-5 shadow-sm flex flex-col font-sans">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="w-8 h-8 bg-[#E9D5FF] rounded-lg flex items-center justify-center text-[#6B21A8] shrink-0">
-                                <Bot className="w-5 h-5" />
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-[#E9D5FF] rounded-lg flex items-center justify-center text-[#6B21A8] shrink-0">
+                                    <Bot className="w-5 h-5" />
+                                </div>
+                                <h3 className="font-bold text-base text-gray-900">AI Insight ประจำเดือน</h3>
                             </div>
-                            <h3 className="font-bold text-base text-gray-900">AI Insight ประจำเดือน</h3>
+
+                            <div className="flex items-center gap-1.5">
+                                {isAiLoading ? (
+                                    <span className="text-[11px] bg-purple-50 text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                        <RefreshCw className="w-3 h-3 animate-spin text-purple-600" />
+                                        <span>AI กำลังวิเคราะห์...</span>
+                                    </span>
+                                ) : aiInsight.isRealAI ? (
+                                    <span className="text-[11px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1 shadow-xs">
+                                        <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" />
+                                        <span>Gemini AI</span>
+                                    </span>
+                                ) : (
+                                    <span className="text-[11px] bg-gray-100 text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full font-medium">
+                                        ระบบสถิติ
+                                    </span>
+                                )}
+
+                                <button
+                                    onClick={fetchAiInsight}
+                                    disabled={isAiLoading || complaints.length === 0}
+                                    title="กดเพื่อวิเคราะห์ใหม่ด้วย Gemini AI"
+                                    className="p-1 text-gray-400 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40"
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${isAiLoading ? 'animate-spin' : ''}`} />
+                                </button>
+                            </div>
                         </div>
                         <p className="text-xs text-gray-500 mb-3">
                             วิเคราะห์ภาพรวมการแจ้งซ่อมและคำแนะนำเพื่อการบำรุงรักษาเชิงป้องกัน
@@ -1507,10 +1620,8 @@ export default function ComplaintsPage() {
                                     <ShieldAlert className="w-4 h-4 text-purple-700 shrink-0" />
                                     สรุปภาพรวมปัญหาประจำเดือน
                                 </h4>
-                                <p className="text-gray-600">
-                                    {complaints.length > 0
-                                        ? `พบรายการแจ้งซ่อมทั้งหมด ${complaints.length} รายการ โดยระบบน้ำและสุขภัณฑ์มีอัตราการแจ้งสูงสุด ควรจัดสรรรอบการเข้าตรวจสอบอย่างสม่ำเสมอ`
-                                        : 'ยังไม่มีข้อมูลการแจ้งซ่อมในระบบ'}
+                                <p className="text-gray-600 leading-relaxed">
+                                    {aiInsight.summaryText}
                                 </p>
                             </div>
 
@@ -1519,10 +1630,13 @@ export default function ComplaintsPage() {
                                     <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
                                     ข้อเสนอแนะในการปรับปรุง
                                 </h4>
-                                <ul className="list-disc pl-4 space-y-1 text-gray-700">
-                                    <li>เพิ่มรอบการตรวจเช็คสภาพอุปกรณ์สุขภัณฑ์และสายฉีดชำระเป็นประจำทุกสัปดาห์</li>
-                                    <li>จัดซื้อสำรองอะไหล่ประเภทชุดสายฉีดชำระ วาล์วน้ำ และหลอดไฟ LED ล่วงหน้า</li>
-                                    <li>ดำเนินการเปลี่ยนอุปกรณ์ทันทีที่มีการแจ้งซ้ำเกิน 2 ครั้งในจุดเดียวกัน</li>
+                                <ul className="space-y-1.5 text-gray-700">
+                                    {aiInsight.suggestions.map((s, i) => (
+                                        <li key={i} className="flex gap-2">
+                                            <span className="text-purple-500 shrink-0 mt-0.5">•</span>
+                                            <span dangerouslySetInnerHTML={{ __html: s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
                         </div>

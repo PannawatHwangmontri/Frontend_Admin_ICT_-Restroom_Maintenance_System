@@ -107,6 +107,7 @@ export default function RestroomStatusPage() {
                                 ...localItem,
                                 backendId: match.id,
                                 status: match.status === 'พร้อมใช้งาน' ? 'available' : 'unavailable',
+                                reason: match.status === 'ไม่พร้อมใช้งาน' ? (match.reason || undefined) : undefined,
                             };
                         }
                         return localItem;
@@ -159,12 +160,15 @@ export default function RestroomStatusPage() {
     const currentFloorRestrooms = restrooms.filter(r => r.floor === selectedFloor);
 
     // ฟังก์ชันจัดการการเปลี่ยนสถานะผ่าน API
-    const updateStatusAPI = async (backendId: number, statusText: 'พร้อมใช้งาน' | 'ไม่พร้อมใช้งาน') => {
+    const updateStatusAPI = async (backendId: number, statusText: 'พร้อมใช้งาน' | 'ไม่พร้อมใช้งาน', reason?: string | null) => {
         try {
             await fetch(`/api/restrooms/${backendId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: statusText }),
+                body: JSON.stringify({
+                    status: statusText,
+                    reason: reason !== undefined ? reason : null,
+                }),
             });
             fetchRestroomStatuses();
         } catch (err) {
@@ -179,11 +183,11 @@ export default function RestroomStatusPage() {
                 prev.map(r => r.id === item.id ? { ...r, status: 'available', reason: undefined } : r)
             );
             if (item.backendId) {
-                updateStatusAPI(item.backendId, 'พร้อมใช้งาน');
+                updateStatusAPI(item.backendId, 'พร้อมใช้งาน', null);
             }
         } else {
             setPendingItem(item);
-            setReasonText('');
+            setReasonText(item.reason || '');
         }
     };
 
@@ -197,7 +201,7 @@ export default function RestroomStatusPage() {
         );
 
         if (pendingItem.backendId) {
-            updateStatusAPI(pendingItem.backendId, 'ไม่พร้อมใช้งาน');
+            updateStatusAPI(pendingItem.backendId, 'ไม่พร้อมใช้งาน', reason);
         }
 
         setPendingItem(null);
@@ -256,25 +260,30 @@ export default function RestroomStatusPage() {
                                     />
 
                                     {/* Tooltip แสดงข้อมูลเมื่อ Hover */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 min-w-[160px]">
-                                        <div className="bg-gray-900/90 text-white text-xs rounded-xl py-2 px-3 shadow-xl backdrop-blur-sm text-center space-y-1">
-                                            <p className="font-bold border-b border-gray-700 pb-1">{spot.name}</p>
-                                            <div className="flex items-center justify-center gap-1">
+                                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 min-w-[180px] max-w-[240px]">
+                                        <div className="bg-gray-900/95 text-white text-xs rounded-xl py-2.5 px-3.5 shadow-xl backdrop-blur-sm text-center space-y-1.5 border border-gray-700/60">
+                                            <p className="font-bold border-b border-gray-700 pb-1 text-gray-100">{spot.name}</p>
+                                            <div className="flex items-center justify-center gap-1.5">
                                                 <span
-                                                    className={`w-2 h-2 rounded-full ${spot.status === 'available' ? 'bg-emerald-400' : 'bg-red-400'
+                                                    className={`w-2 h-2 rounded-full ${spot.status === 'available' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]'
                                                         }`}
                                                 />
-                                                <span className="font-semibold">
+                                                <span className={`font-semibold ${spot.status === 'available' ? 'text-emerald-300' : 'text-red-300'}`}>
                                                     {spot.status === 'available' ? 'พร้อมใช้งาน' : 'ไม่พร้อมใช้งาน'}
                                                 </span>
                                             </div>
                                             {spot.status === 'unavailable' && (
-                                                <p className="text-[11px] text-red-300 font-normal pt-0.5 max-w-[180px] leading-tight">
-                                                    สาเหตุ: {spot.reason || 'ไม่ระบุสาเหตุ'}
-                                                </p>
+                                                <div className="bg-red-950/60 border border-red-500/30 rounded-lg p-2 text-left mt-1">
+                                                    <span className="text-[10px] text-red-300 font-semibold flex items-center gap-1">
+                                                        <AlertCircle className="w-3 h-3 text-red-400 shrink-0" /> สาเหตุที่ชำรุด:
+                                                    </span>
+                                                    <span className="text-[11px] text-red-100 font-normal block mt-0.5 leading-snug break-words">
+                                                        {spot.reason || 'ไม่ได้ระบุสาเหตุ'}
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="w-2 h-2 bg-gray-900/90 rotate-45 -mt-1" />
+                                        <div className="w-2 h-2 bg-gray-900/95 rotate-45 -mt-1" />
                                     </div>
                                 </div>
                             ))}
@@ -323,9 +332,10 @@ export default function RestroomStatusPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-[#E9D5FF]/60 text-purple-950 font-bold text-xs sm:text-sm border-b border-purple-100">
-                                    <th className="py-3.5 px-6 text-center w-24">ชั้น</th>
+                                    <th className="py-3.5 px-6 text-center w-20">ชั้น</th>
                                     <th className="py-3.5 px-6">สถานที่</th>
-                                    <th className="py-3.5 px-6 text-center w-64">สถานะ</th>
+                                    <th className="py-3.5 px-6">สาเหตุการชำรุด / หมายเหตุ</th>
+                                    <th className="py-3.5 px-6 text-center w-60">สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 text-xs sm:text-sm font-medium">
@@ -336,10 +346,26 @@ export default function RestroomStatusPage() {
                                         </td>
                                         <td className="py-4 px-6 text-gray-900 font-semibold">
                                             <div>{item.name}</div>
-                                            {item.status === 'unavailable' && item.reason && (
-                                                <span className="text-xs text-red-500 font-normal block mt-0.5">
-                                                    สาเหตุ: {item.reason}
-                                                </span>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            {item.status === 'unavailable' ? (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 inline-block">
+                                                        {item.reason || 'ไม่ได้ระบุสาเหตุ'}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setPendingItem(item);
+                                                            setReasonText(item.reason || '');
+                                                        }}
+                                                        className="text-[11px] text-[#5B08B2] hover:text-[#4C1D95] font-semibold underline shrink-0 cursor-pointer"
+                                                    >
+                                                        แก้ไขสาเหตุ
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">-</span>
                                             )}
                                         </td>
                                         <td className="py-4 px-6 text-center">

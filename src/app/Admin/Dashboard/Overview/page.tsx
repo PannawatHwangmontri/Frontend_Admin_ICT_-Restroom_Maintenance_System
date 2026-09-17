@@ -700,21 +700,7 @@ export default function Dashboard() {
                         </p>
                     </div>
 
-                    <div
-                        onClick={() => {
-                            if (pendingRequests.length > 0) {
-                                setSelectedItem({
-                                    category: 'เรื่องที่รอรับ',
-                                    title: 'รายการเรื่องที่รอรับ (เดือนปัจจุบัน)',
-                                    name: `เรื่องที่รอรับทั้งหมด (${pendingRequests.length} รายการ)`,
-                                    count: pendingRequests.length,
-                                    subItems: pendingRequests
-                                });
-                            }
-                        }}
-                        className={`bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm transition-all ${pendingRequests.length > 0 ? 'cursor-pointer hover:shadow-md group' : ''
-                            }`}
-                    >
+                    <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-1">
                             <p className="text-xs font-medium text-gray-500">เรื่องที่รอรับ</p>
                             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md">
@@ -722,10 +708,7 @@ export default function Dashboard() {
                             </span>
                         </div>
                         <div className="text-4xl font-semibold text-[#D97706] mb-2">{metrics.pendingCount}</div>
-                        <p className="text-xs text-amber-700 font-semibold flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 inline shrink-0" />
-                            <span>{pendingRequests.length > 0 ? 'คลิกดูรายการที่รอรับ' : 'ไม่มีรายการค้างรับ'}</span>
-                        </p>
+                        <p className="text-xs text-gray-400">รอเจ้าหน้าที่รับเรื่อง</p>
                     </div>
 
                     <div className="bg-white border-2 border-[#7C3AED] rounded-2xl p-5 shadow-sm">

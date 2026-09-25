@@ -32,6 +32,7 @@ import {
     Layers,
     Loader2,
     Sparkles,
+    FileText,
     RefreshCw
 } from 'lucide-react';
 
@@ -51,6 +52,7 @@ interface Complaint {
     note: string;
     repeatRejectNote?: string;
     line_user_id?: string;
+    is_repeat_blocked?: boolean;
 }
 
 interface SubComplaint extends Complaint {
@@ -82,7 +84,8 @@ const initialComplaints: Complaint[] = [
         status: 'รับเรื่อง',
         repeatCount: 5,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: ''
+        note: '',
+        is_repeat_blocked: false
     },
     {
         id: '2',
@@ -96,7 +99,8 @@ const initialComplaints: Complaint[] = [
         status: 'รอรับเรื่อง',
         repeatCount: 3,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: ''
+        note: '',
+        is_repeat_blocked: false
     },
     {
         id: '3',
@@ -110,7 +114,8 @@ const initialComplaints: Complaint[] = [
         status: 'รอรับเรื่อง',
         repeatCount: 2,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: ''
+        note: '',
+        is_repeat_blocked: false
     },
     {
         id: '4',
@@ -124,7 +129,8 @@ const initialComplaints: Complaint[] = [
         status: 'รับเรื่อง',
         repeatCount: 1,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: ''
+        note: '',
+        is_repeat_blocked: false
     },
     {
         id: '5',
@@ -138,7 +144,8 @@ const initialComplaints: Complaint[] = [
         status: 'ไม่รับเรื่อง',
         repeatCount: 1,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: 'ข้อมูลซ้ำซ้อนกับเคส #ST2-01 ที่กำลังดำเนินการอยู่'
+        note: 'ข้อมูลซ้ำซ้อนกับเคส #ST2-01 ที่กำลังดำเนินการอยู่',
+        is_repeat_blocked: false
     }
 ];
 
@@ -184,12 +191,14 @@ export default function ComplaintsPage() {
 
     const [expandedGroupIds, setExpandedGroupIds] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
+    const [selectedStatus, setSelectedStatus] = useState('ทั้งหมด');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
     const [toastMessage, setToastMessage] = useState('');
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [exportOption, setExportOption] = useState('complaints');
+    const [exportFormat, setExportFormat] = useState<'excel' | 'csv'>('excel');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
     const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
@@ -215,6 +224,102 @@ export default function ComplaintsPage() {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(''), 3500);
     };
+
+    // ฟังก์ชันสำหรับดาวน์โหลดรูปภาพ
+    const handleDownloadImage = async (url: string, filename: string) => {
+        try {
+            if (!url) return;
+
+            if (url.startsWith('data:')) {
+                const a = document.createElement('a');
+                a.href = url;
+                let ext = 'jpg';
+                const match = url.match(/data:image\/([a-zA-Z0-9]+);/);
+                if (match && match[1]) {
+                    ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+                }
+                a.download = `${filename}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('ดาวน์โหลดรูปภาพเรียบร้อยแล้ว');
+                return;
+            }
+
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            let ext = 'jpg';
+            if (url.includes('.')) {
+                const parts = url.split('.');
+                const lastPart = parts[parts.length - 1].split('?')[0];
+                if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(lastPart.toLowerCase())) {
+                    ext = lastPart;
+                }
+            }
+            a.download = `${filename}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+            showToast('ดาวน์โหลดรูปภาพเรียบร้อยแล้ว');
+        } catch (error) {
+            console.error('Download error:', error);
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.download = `${filename}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    };
+
+    // โหลดรูปภาพความเสียหายอัตโนมัติทันทีเมื่อเปิดดูรายละเอียดปัญหา
+    useEffect(() => {
+        if (!activeComplaint) {
+            setIsLoadingImage(false);
+            return;
+        }
+
+        let isCancelled = false;
+        const complaintId = activeComplaint.id;
+
+        // ถ้ามีรูป base64 หรือ url โหลดสมบูรณ์แล้ว ไม่จำเป็นต้อง fetch ซ้ำ
+        if (activeComplaint.imageUrl && (activeComplaint.imageUrl.startsWith('data:') || activeComplaint.imageUrl.startsWith('http'))) {
+            setIsLoadingImage(false);
+            return;
+        }
+
+        const fetchFullComplaintImage = async () => {
+            try {
+                setIsLoadingImage(true);
+                const res = await fetch(`/api/requests/${complaintId}`);
+                const data = await res.json();
+                if (!isCancelled && data.success && data.data?.image_url) {
+                    setActiveComplaint((prev) =>
+                        prev && prev.id === complaintId
+                            ? { ...prev, imageUrl: data.data.image_url }
+                            : prev
+                    );
+                }
+            } catch (err) {
+                console.error('Failed to load complaint image automatically:', err);
+            } finally {
+                if (!isCancelled) {
+                    setIsLoadingImage(false);
+                }
+            }
+        };
+
+        fetchFullComplaintImage();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeComplaint?.id]);
 
     const isUpdatingRef = useRef(isUpdating);
     useEffect(() => {
@@ -299,6 +404,7 @@ export default function ComplaintsPage() {
                         note: item.remark || '',
                         repeatRejectNote: '',
                         line_user_id: item.line_user_id || undefined,
+                        is_repeat_blocked: Boolean(item.is_repeat_blocked),
                     };
                 });
 
@@ -425,13 +531,14 @@ export default function ComplaintsPage() {
         return complaints
             .filter((item) => {
                 const matchCategory = selectedCategory === 'ทั้งหมด' || item.category === selectedCategory;
+                const matchStatus = selectedStatus === 'ทั้งหมด' || item.status === selectedStatus;
                 const itemDate = item.date;
                 const matchStart = !startDate || itemDate >= startDate;
                 const matchEnd = !endDate || itemDate <= endDate;
-                return matchCategory && matchStart && matchEnd;
+                return matchCategory && matchStatus && matchStart && matchEnd;
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [complaints, selectedCategory, startDate, endDate]);
+    }, [complaints, selectedCategory, selectedStatus, startDate, endDate]);
 
     // สร้างข้อมูลการเปรียบเทียบย้อนหลังแบบ Dynamic จากข้อมูลจริงในฐานข้อมูล DB (ตามจำนวนปีที่เลือก ไม่รวมปีปัจจุบัน)
     const displayedYearlyData = useMemo(() => {
@@ -605,6 +712,11 @@ export default function ComplaintsPage() {
             const primaryItem = sortedItems[0];
             const duplicateItems = sortedItems.slice(1);
 
+            const effectiveRepeatCount = Math.max(sortedItems.length, primaryItem.repeatCount || 1);
+
+            // แสดงเฉพาะรายการที่มีการแจ้งซ้ำเท่านั้น (repeatCount > 1)
+            if (effectiveRepeatCount <= 1) return;
+
             const subItems: SubComplaint[] = duplicateItems.map((sub, idx) => ({
                 ...sub,
                 uniqueId: String(sub.id),
@@ -614,7 +726,7 @@ export default function ComplaintsPage() {
 
             groups.push({
                 ...primaryItem,
-                repeatCount: sortedItems.length,
+                repeatCount: effectiveRepeatCount,
                 primaryCode: primaryItem.code,
                 subItems: subItems,
             });
@@ -707,11 +819,24 @@ export default function ComplaintsPage() {
         });
     }, [filteredComplaints]);
 
+    const allRepeatTableIds = useMemo(() => {
+        return groupedComplaintsByRepeat.flatMap(g => [g.id, ...g.subItems.map(s => s.id)]);
+    }, [groupedComplaintsByRepeat]);
+
     const handleSelectAll = () => {
-        if (selectedIds.length === filteredComplaints.length && filteredComplaints.length > 0) {
-            setSelectedIds([]);
+        if (deleteModeTable === 'all') {
+            const isAllSelected = allRepeatTableIds.length > 0 && allRepeatTableIds.every(id => selectedIds.includes(id));
+            if (isAllSelected) {
+                setSelectedIds(prev => prev.filter(id => !allRepeatTableIds.includes(id)));
+            } else {
+                setSelectedIds(prev => Array.from(new Set([...prev, ...allRepeatTableIds])));
+            }
         } else {
-            setSelectedIds(filteredComplaints.map((item) => item.id));
+            if (selectedIds.length === filteredComplaints.length && filteredComplaints.length > 0) {
+                setSelectedIds([]);
+            } else {
+                setSelectedIds(filteredComplaints.map((item) => item.id));
+            }
         }
     };
 
@@ -719,6 +844,36 @@ export default function ComplaintsPage() {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
         );
+    };
+
+    const handleToggleRepeatBlocked = async (id: string, isBlocked: boolean) => {
+        setComplaints((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, is_repeat_blocked: isBlocked } : c))
+        );
+
+        try {
+            const res = await fetch(`/api/requests/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_repeat_blocked: isBlocked }),
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(
+                    isBlocked
+                        ? 'ปิดการแจ้งซ้ำสำหรับรายการนี้เรียบร้อยแล้ว'
+                        : 'เปิดรับการแจ้งซ้ำตามปกติแล้ว'
+                );
+            } else {
+                throw new Error(data.message || 'เกิดข้อผิดพลาด');
+            }
+        } catch (error) {
+            console.error('Failed to toggle repeat blocked:', error);
+            showToast('เกิดข้อผิดพลาดในการอัปเดตสถานะการแจ้งซ้ำ');
+            setComplaints((prev) =>
+                prev.map((c) => (c.id === id ? { ...c, is_repeat_blocked: !isBlocked } : c))
+            );
+        }
     };
 
     // ลบรายการที่เลือก เชื่อมต่อ Backend DB
@@ -762,78 +917,681 @@ export default function ComplaintsPage() {
         }
     };
 
-    const exportToCSV = (type: string) => {
-        let headers: string[] = [];
-        let rows: string[][] = [];
-        let filename = `export_report_${new Date().toISOString().slice(0, 10)}.csv`;
+    const extractFloorName = (loc: string): string => {
+        if (!loc) return 'ไม่ระบุชั้น';
+        const match = loc.match(/ชั้น\s*([0-9]+|[A-Za-z0-9]+)/i);
+        if (match) return `ชั้น ${match[1]}`;
+        return 'ไม่ระบุชั้น';
+    };
+
+    const formatDateDisplay = (dateStr: string): string => {
+        if (!dateStr || dateStr === 'ไม่ระบุวันที่') return 'ไม่ระบุวันที่';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return dateStr;
+    };
+
+    const exportData = (type: string, format: 'excel' | 'csv' = exportFormat) => {
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const printDate = new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+
+        if (format === 'excel') {
+            let htmlContent = '';
+            let filename = `export_report_${dateStr}.xls`;
+
+            if (type === 'complaints') {
+                filename = `complaints_report_${dateStr}.xls`;
+                const totalCount = filteredComplaints.length;
+
+                // Frequency per floor
+                const floorCounts: Record<string, number> = {};
+                filteredComplaints.forEach((c) => {
+                    const f = extractFloorName(c.location);
+                    floorCounts[f] = (floorCounts[f] || 0) + 1;
+                });
+                const sortedFloors = Object.keys(floorCounts).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ''), 10);
+                    const numB = parseInt(b.replace(/\D/g, ''), 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return a.localeCompare(b);
+                });
+                const floorStats = sortedFloors.map((floor) => ({
+                    floor,
+                    count: floorCounts[floor],
+                    percentage: totalCount > 0 ? ((floorCounts[floor] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+                }));
+
+                // Status breakdown
+                const statusCounts: Record<string, number> = {};
+                filteredComplaints.forEach((c) => {
+                    const s = c.status || 'ไม่ระบุ';
+                    statusCounts[s] = (statusCounts[s] || 0) + 1;
+                });
+                const statusStats = Object.keys(statusCounts).map((status) => ({
+                    status,
+                    count: statusCounts[status],
+                    percentage: totalCount > 0 ? ((statusCounts[status] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+                }));
+
+                // Daily frequency breakdown
+                const dailyCounts: Record<string, number> = {};
+                filteredComplaints.forEach((c) => {
+                    const d = c.date || 'ไม่ระบุวันที่';
+                    dailyCounts[d] = (dailyCounts[d] || 0) + 1;
+                });
+                const sortedDates = Object.keys(dailyCounts).sort((a, b) => {
+                    if (a === 'ไม่ระบุวันที่') return 1;
+                    if (b === 'ไม่ระบุวันที่') return -1;
+                    return new Date(a).getTime() - new Date(b).getTime();
+                });
+                const dailyStats = sortedDates.map((d) => ({
+                    date: d,
+                    display: formatDateDisplay(d),
+                    count: dailyCounts[d],
+                    percentage: totalCount > 0 ? ((dailyCounts[d] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+                }));
+
+                htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<!--[if gte mso 9]>
+<xml>
+ <x:ExcelWorkbook>
+  <x:ExcelWorksheets>
+   <x:ExcelWorksheet>
+    <x:Name>รายการแจ้งซ่อม</x:Name>
+    <x:WorksheetOptions>
+     <x:DisplayGridlines/>
+    </x:WorksheetOptions>
+   </x:ExcelWorksheet>
+  </x:ExcelWorksheets>
+ </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  body, table { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11pt; color: #1e293b; }
+  .title { font-size: 15pt; font-weight: bold; color: #581c87; padding: 10px 4px; }
+  .meta-hdr { font-weight: bold; background-color: #f1f5f9; color: #334155; padding: 6px 10px; border: 1px solid #cbd5e1; }
+  .meta-val { border: 1px solid #cbd5e1; padding: 6px 10px; }
+  .section-hdr { background-color: #6b21a8; color: #ffffff; font-weight: bold; font-size: 12pt; padding: 8px 12px; }
+  .sub-hdr { background-color: #f3e8ff; color: #6b21a8; font-weight: bold; text-align: center; border: 1px solid #d8b4fe; padding: 8px 10px; }
+  .th-col { background-color: #6b21a8; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #581c87; padding: 10px 8px; }
+  .td-cell { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; mso-number-format: "\\@"; white-space: normal; word-break: break-word; }
+  .td-center { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; text-align: center; mso-number-format: "\\@"; }
+  .zebra { background-color: #faf5ff; }
+  .total-row { background-color: #f3e8ff; font-weight: bold; border-top: 2px solid #9333ea; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <tr>
+    <td colspan="4" class="title">รายงานสรุปข้อมูลการแจ้งซ่อมห้องน้ำ ICT Restroom Maintenance</td>
+  </tr>
+  <tr>
+    <td class="meta-hdr">วันที่ส่งออกข้อมูล:</td>
+    <td colspan="3" class="meta-val">${printDate}</td>
+  </tr>
+  <tr>
+    <td class="meta-hdr" style="background-color: #ede9fe; color: #4c1d95; font-size: 12pt;">จำนวนเรื่องแจ้งเข้าทั้งหมด:</td>
+    <td colspan="3" class="meta-val" style="font-weight: bold; font-size: 13pt; color: #6b21a8;">${totalCount} รายการ</td>
+  </tr>
+</table>
+
+<br/>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <thead>
+    <tr>
+      <th colspan="3" class="section-hdr">📊 สถิติความถี่ในการแจ้งแต่ละชั้น</th>
+    </tr>
+    <tr>
+      <th class="sub-hdr" style="width: 140pt;">ชั้น</th>
+      <th class="sub-hdr" style="width: 160pt;">ความถี่ (จำนวนครั้งที่แจ้ง)</th>
+      <th class="sub-hdr" style="width: 160pt;">สัดส่วนความถี่ (%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${floorStats.map((item, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: 600;">${item.floor}</td>
+      <td class="td-center">${item.count} รายการ</td>
+      <td class="td-center" style="font-weight: bold; color: #6b21a8;">${item.percentage}</td>
+    </tr>`).join('')}
+    <tr class="total-row">
+      <td class="td-center">รวมทุกชั้น</td>
+      <td class="td-center">${totalCount} รายการ</td>
+      <td class="td-center">100.0%</td>
+    </tr>
+  </tbody>
+</table>
+
+<br/>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <thead>
+    <tr>
+      <th colspan="3" class="section-hdr" style="background-color: #0369a1;">📌 สรุปสถานะการดำเนินการ</th>
+    </tr>
+    <tr>
+      <th class="sub-hdr" style="width: 180pt; color: #0369a1; background-color: #e0f2fe; border-color: #bae6fd;">สถานะ</th>
+      <th class="sub-hdr" style="width: 140pt; color: #0369a1; background-color: #e0f2fe; border-color: #bae6fd;">จำนวน (รายการ)</th>
+      <th class="sub-hdr" style="width: 140pt; color: #0369a1; background-color: #e0f2fe; border-color: #bae6fd;">สัดส่วน (%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${statusStats.map((item, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: 600;">${item.status}</td>
+      <td class="td-center">${item.count} รายการ</td>
+      <td class="td-center" style="font-weight: bold; color: #0284c7;">${item.percentage}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+<br/>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 20px;">
+  <thead>
+    <tr>
+      <th colspan="3" class="section-hdr" style="background-color: #581c87;">📅 สถิติความถี่การแจ้งซ่อมตามวันที่</th>
+    </tr>
+    <tr>
+      <th class="sub-hdr" style="width: 160pt;">วันที่แจ้ง</th>
+      <th class="sub-hdr" style="width: 160pt;">ความถี่ (จำนวนครั้งที่แจ้ง)</th>
+      <th class="sub-hdr" style="width: 140pt;">สัดส่วนความถี่ (%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${dailyStats.map((item, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: 600;">${item.display}</td>
+      <td class="td-center" style="font-weight: bold; color: #581c87;">${item.count} รายการ</td>
+      <td class="td-center" style="font-weight: bold; color: #7e22ce;">${item.percentage}</td>
+    </tr>`).join('')}
+    <tr class="total-row">
+      <td class="td-center">รวมทั้งหมด</td>
+      <td class="td-center">${totalCount} รายการ</td>
+      <td class="td-center">100.0%</td>
+    </tr>
+  </tbody>
+</table>
+
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 100pt; min-width: 100pt;" />
+    <col style="width: 150pt; min-width: 150pt;" />
+    <col style="width: 250pt; min-width: 250pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+    <col style="width: 280pt; min-width: 280pt;" />
+    <col style="width: 120pt; min-width: 120pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+    <col style="width: 260pt; min-width: 260pt;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th colspan="8" class="section-hdr">📋 รายละเอียดรายการแจ้งซ่อมทั้งหมด (${totalCount} รายการ)</th>
+    </tr>
+    <tr>
+      <th class="th-col">ID</th>
+      <th class="th-col">วัน/เดือน/ปี</th>
+      <th class="th-col">สถานที่</th>
+      <th class="th-col">หมวดหมู่</th>
+      <th class="th-col">ปัญหา</th>
+      <th class="th-col">ระดับความสำคัญ</th>
+      <th class="th-col">สถานะ</th>
+      <th class="th-col">หมายเหตุ</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${filteredComplaints.map((item, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: bold;">${item.code || ''}</td>
+      <td class="td-center">${item.displayDate || item.date || ''}</td>
+      <td class="td-cell">${item.location || ''}</td>
+      <td class="td-center">${item.category || ''}</td>
+      <td class="td-cell">${item.problem || ''}</td>
+      <td class="td-center">${item.severity || ''}</td>
+      <td class="td-center">${item.status || ''}</td>
+      <td class="td-cell">${item.note || ''}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+</body>
+</html>`;
+            } else if (type === 'category') {
+                filename = `category_summary_${dateStr}.xls`;
+                const totalCatItems = filteredCategorySummary.reduce((sum, cat) => sum + cat.items.reduce((s, it) => s + it.count, 0), 0);
+
+                htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style>
+  body, table { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11pt; color: #1e293b; }
+  .title { font-size: 15pt; font-weight: bold; color: #581c87; padding: 8px 4px; }
+  .section-hdr { background-color: #6b21a8; color: #ffffff; font-weight: bold; font-size: 12pt; padding: 8px 12px; }
+  .th-col { background-color: #6b21a8; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #581c87; padding: 10px 8px; }
+  .td-cell { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; mso-number-format: "\\@"; white-space: normal; word-break: break-word; }
+  .td-center { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; text-align: center; mso-number-format: "\\@"; }
+  .zebra { background-color: #faf5ff; }
+  .total-row { background-color: #f3e8ff; font-weight: bold; border-top: 2px solid #9333ea; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <tr><td colspan="3" class="title">รายงานสรุปรายการแจ้งซ่อมตามหมวดหมู่</td></tr>
+  <tr><td style="font-weight: bold; background-color: #f1f5f9;">วันที่ส่งออก:</td><td colspan="2">${printDate}</td></tr>
+  <tr><td style="font-weight: bold; background-color: #ede9fe; color: #4c1d95;">จำนวนรายการความเสียหายรวม:</td><td colspan="2" style="font-weight: bold; color: #6b21a8;">${totalCatItems} รายการ</td></tr>
+</table>
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 180pt; min-width: 180pt;" />
+    <col style="width: 280pt; min-width: 280pt;" />
+    <col style="width: 140pt; min-width: 140pt;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="th-col">หมวดหมู่</th>
+      <th class="th-col">รายการความเสียหาย</th>
+      <th class="th-col">จำนวน (รายการ)</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${(() => {
+        let rowsHtml = '';
+        let rowIdx = 0;
+        filteredCategorySummary.forEach((cat) => {
+            cat.items.forEach((item) => {
+                rowsHtml += `
+                <tr class="${rowIdx % 2 === 1 ? 'zebra' : ''}">
+                  <td class="td-cell" style="font-weight: 600;">${cat.title}</td>
+                  <td class="td-cell">${item.name}</td>
+                  <td class="td-center">${item.count} รายการ</td>
+                </tr>`;
+                rowIdx++;
+            });
+        });
+        return rowsHtml;
+    })()}
+    <tr class="total-row">
+      <td colspan="2" class="td-center">รวมจำนวนรายการทั้งหมด</td>
+      <td class="td-center">${totalCatItems} รายการ</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>`;
+            } else if (type === 'monthly') {
+                filename = `monthly_summary_${selectedHistoryMonthYear}_${selectedMonthData.startMonth + 1}_to_${selectedMonthData.endMonth + 1}_${dateStr}.xls`;
+                htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style>
+  body, table { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11pt; color: #1e293b; }
+  .title { font-size: 15pt; font-weight: bold; color: #581c87; padding: 8px 4px; }
+  .section-hdr { background-color: #6b21a8; color: #ffffff; font-weight: bold; font-size: 12pt; padding: 8px 12px; }
+  .th-col { background-color: #6b21a8; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #581c87; padding: 10px 8px; }
+  .td-cell { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; mso-number-format: "\\@"; white-space: normal; word-break: break-word; }
+  .td-center { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; text-align: center; mso-number-format: "\\@"; }
+  .zebra { background-color: #faf5ff; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <tr><td colspan="5" class="title">รายงานสรุปการแจ้งซ่อมประจำช่วงเดือน (${selectedMonthData.label})</td></tr>
+  <tr><td style="font-weight: bold; background-color: #f1f5f9;">วันที่ส่งออก:</td><td colspan="4">${printDate}</td></tr>
+</table>
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <colgroup>
+    <col style="width: 160pt; min-width: 160pt;" />
+    <col style="width: 150pt; min-width: 150pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="th-col">ช่วงเดือน/ปี</th>
+      <th class="th-col">จำนวนรายการทั้งหมด</th>
+      <th class="th-col">ระบบน้ำ</th>
+      <th class="th-col">สุขภัณฑ์</th>
+      <th class="th-col">ระบบไฟฟ้า</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="td-center" style="font-weight: 600;">${selectedMonthData.label}</td>
+      <td class="td-center" style="font-weight: bold; color: #6b21a8;">${selectedMonthData.totalRepairs} รายการ</td>
+      <td class="td-center">${selectedMonthData.categories[0]?.count || 0}</td>
+      <td class="td-center">${selectedMonthData.categories[1]?.count || 0}</td>
+      <td class="td-center">${selectedMonthData.categories[2]?.count || 0}</td>
+    </tr>
+  </tbody>
+</table>
+${selectedMonthData.records.length > 0 ? `
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 100pt; min-width: 100pt;" />
+    <col style="width: 150pt; min-width: 150pt;" />
+    <col style="width: 250pt; min-width: 250pt;" />
+    <col style="width: 280pt; min-width: 280pt;" />
+    <col style="width: 130pt; min-width: 130pt;" />
+  </colgroup>
+  <thead>
+    <tr><th colspan="5" class="section-hdr">รายการแจ้งซ่อมในช่วงเดือนที่เลือก (${selectedMonthData.records.length} รายการ)</th></tr>
+    <tr>
+      <th class="th-col">ID</th>
+      <th class="th-col">วัน/เดือน/ปี</th>
+      <th class="th-col">สถานที่</th>
+      <th class="th-col">หมวดหมู่/ปัญหา</th>
+      <th class="th-col">สถานะ</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${selectedMonthData.records.map((r, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: bold;">${r.code}</td>
+      <td class="td-center">${r.displayDate}</td>
+      <td class="td-cell">${r.location}</td>
+      <td class="td-cell">${r.category} - ${r.problem}</td>
+      <td class="td-center">${r.status}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>` : ''}
+</body>
+</html>`;
+            } else if (type === 'yearly') {
+                filename = `yearly_history_${dateStr}.xls`;
+                htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style>
+  body, table { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11pt; color: #1e293b; }
+  .title { font-size: 15pt; font-weight: bold; color: #581c87; padding: 8px 4px; }
+  .th-col { background-color: #6b21a8; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #581c87; padding: 10px 8px; }
+  .td-center { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; text-align: center; mso-number-format: "\\@"; }
+  .zebra { background-color: #faf5ff; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <tr><td colspan="5" class="title">รายงานสรุปประวัติการแจ้งซ่อมรายปีย้อนหลัง</td></tr>
+  <tr><td style="font-weight: bold; background-color: #f1f5f9;">วันที่ส่งออก:</td><td colspan="4">${printDate}</td></tr>
+</table>
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 100pt; min-width: 100pt;" />
+    <col style="width: 150pt; min-width: 150pt;" />
+    <col style="width: 140pt; min-width: 140pt;" />
+    <col style="width: 140pt; min-width: 140pt;" />
+    <col style="width: 140pt; min-width: 140pt;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="th-col">ปี</th>
+      <th class="th-col">จำนวนรายการรวม</th>
+      <th class="th-col">ระบบน้ำ</th>
+      <th class="th-col">สุขภัณฑ์</th>
+      <th class="th-col">ระบบไฟฟ้า</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${displayedYearlyData.map((data, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-center" style="font-weight: 600;">${data.year}</td>
+      <td class="td-center" style="font-weight: bold; color: #6b21a8;">${data.totalRepairs}</td>
+      <td class="td-center">${data.categories[0]?.count || 0}</td>
+      <td class="td-center">${data.categories[1]?.count || 0}</td>
+      <td class="td-center">${data.categories[2]?.count || 0}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+</body>
+</html>`;
+            } else if (type === 'ai') {
+                filename = `ai_insight_${dateStr}.xls`;
+                htmlContent = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style>
+  body, table { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11pt; color: #1e293b; }
+  .title { font-size: 15pt; font-weight: bold; color: #581c87; padding: 8px 4px; }
+  .th-col { background-color: #6b21a8; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #581c87; padding: 10px 8px; }
+  .td-cell { border: 1px solid #cbd5e1; padding: 10px; vertical-align: top; mso-number-format: "\\@"; white-space: normal; word-break: break-word; }
+  .zebra { background-color: #faf5ff; }
+</style>
+</head>
+<body>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-bottom: 16px;">
+  <tr><td colspan="2" class="title">AI Insight ประจำเดือน - บทวิเคราะห์ปัญหาและแนวทางป้องกัน</td></tr>
+  <tr><td style="font-weight: bold; background-color: #f1f5f9; width: 180pt;">วันที่ส่งออก:</td><td>${printDate}</td></tr>
+</table>
+<br/>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+  <colgroup>
+    <col style="width: 200pt; min-width: 200pt;" />
+    <col style="width: 500pt; min-width: 500pt;" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="th-col">ส่วนงาน</th>
+      <th class="th-col">รายละเอียด / ข้อเสนอแนะ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="td-cell" style="font-weight: bold; color: #6b21a8;">สรุปภาพรวมปัญหาประจำเดือน</td>
+      <td class="td-cell">${aiInsight.summaryText || ''}</td>
+    </tr>
+    ${aiInsight.suggestions.map((s, idx) => `
+    <tr class="${idx % 2 === 1 ? 'zebra' : ''}">
+      <td class="td-cell" style="font-weight: 600;">ข้อเสนอแนะในการปรับปรุง ${idx + 1}</td>
+      <td class="td-cell">${s}</td>
+    </tr>`).join('')}
+  </tbody>
+</table>
+</body>
+</html>`;
+            }
+
+            const blob = new Blob(['\uFEFF' + htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            return;
+        }
+
+        // CSV Format
+        let csvContent = '';
+        let filename = `export_report_${dateStr}.csv`;
 
         if (type === 'complaints') {
-            filename = `complaints_report_${new Date().toISOString().slice(0, 10)}.csv`;
-            headers = ['ID', 'วัน/เดือน/ปี', 'สถานที่', 'หมวดหมู่', 'ปัญหา', 'ระดับความสำคัญ', 'สถานะ', 'หมายเหตุ'];
-            rows = filteredComplaints.map(item => [
-                `"${item.code}"`,
-                `"${item.displayDate}"`,
-                `"${item.location}"`,
-                `"${item.category}"`,
-                `"${item.problem}"`,
-                `"${item.severity}"`,
-                `"${item.status}"`,
-                `"${item.note || ''}"`
-            ]);
+            filename = `complaints_report_${dateStr}.csv`;
+            const totalCount = filteredComplaints.length;
+
+            // Frequency per floor
+            const floorCounts: Record<string, number> = {};
+            filteredComplaints.forEach((c) => {
+                const f = extractFloorName(c.location);
+                floorCounts[f] = (floorCounts[f] || 0) + 1;
+            });
+            const sortedFloors = Object.keys(floorCounts).sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, ''), 10);
+                const numB = parseInt(b.replace(/\D/g, ''), 10);
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                return a.localeCompare(b);
+            });
+            const floorStats = sortedFloors.map((floor) => ({
+                floor,
+                count: floorCounts[floor],
+                percentage: totalCount > 0 ? ((floorCounts[floor] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+            }));
+
+            // Status breakdown
+            const statusCounts: Record<string, number> = {};
+            filteredComplaints.forEach((c) => {
+                const s = c.status || 'ไม่ระบุ';
+                statusCounts[s] = (statusCounts[s] || 0) + 1;
+            });
+            const statusStats = Object.keys(statusCounts).map((status) => ({
+                status,
+                count: statusCounts[status],
+                percentage: totalCount > 0 ? ((statusCounts[status] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+            }));
+
+            // Daily frequency breakdown
+            const dailyCounts: Record<string, number> = {};
+            filteredComplaints.forEach((c) => {
+                const d = c.date || 'ไม่ระบุวันที่';
+                dailyCounts[d] = (dailyCounts[d] || 0) + 1;
+            });
+            const sortedDates = Object.keys(dailyCounts).sort((a, b) => {
+                if (a === 'ไม่ระบุวันที่') return 1;
+                if (b === 'ไม่ระบุวันที่') return -1;
+                return new Date(a).getTime() - new Date(b).getTime();
+            });
+            const dailyStats = sortedDates.map((d) => ({
+                date: d,
+                display: formatDateDisplay(d),
+                count: dailyCounts[d],
+                percentage: totalCount > 0 ? ((dailyCounts[d] / totalCount) * 100).toFixed(1) + '%' : '0.0%'
+            }));
+
+            const lines: string[] = [];
+            lines.push('"=== รายงานสรุปข้อมูลการแจ้งซ่อมห้องน้ำ ICT Restroom Maintenance ==="');
+            lines.push(`"วันที่พิมพ์รายงาน:","${printDate}"`);
+            lines.push(`"จำนวนเรื่องแจ้งเข้าทั้งหมด:","${totalCount} รายการ"`);
+            lines.push('""');
+
+            lines.push('"=== สถิติความถี่ในการแจ้งแต่ละชั้น ==="');
+            lines.push('"ชั้น","ความถี่ (จำนวนครั้งที่แจ้ง)","สัดส่วนความถี่ (%)"');
+            floorStats.forEach((item) => {
+                lines.push(`"${item.floor}","${item.count} รายการ","${item.percentage}"`);
+            });
+            lines.push(`"รวมทุกชั้น","${totalCount} รายการ","100.0%"`);
+            lines.push('""');
+
+            lines.push('"=== สรุปสถานะการดำเนินการ ==="');
+            lines.push('"สถานะ","จำนวน (รายการ)","สัดส่วน (%)"');
+            statusStats.forEach((item) => {
+                lines.push(`"${item.status}","${item.count} รายการ","${item.percentage}"`);
+            });
+            lines.push('""');
+
+            lines.push('"=== ความถี่การแจ้งซ่อมตามวันที่ ==="');
+            lines.push('"วันที่แจ้ง","ความถี่ (จำนวนครั้งที่แจ้ง)","สัดส่วนความถี่ (%)"');
+            dailyStats.forEach((item) => {
+                lines.push(`"${item.display}","${item.count} รายการ","${item.percentage}"`);
+            });
+            lines.push(`"รวมทั้งหมด","${totalCount} รายการ","100.0%"`);
+            lines.push('""');
+
+            lines.push(`"=== รายละเอียดรายการแจ้งซ่อมทั้งหมด (${totalCount} รายการ) ==="`);
+            lines.push('"ID","วัน/เดือน/ปี","สถานที่","หมวดหมู่","ปัญหา","ระดับความสำคัญ","สถานะ","หมายเหตุ"');
+            filteredComplaints.forEach((item) => {
+                lines.push([
+                    `"${(item.code || '').replace(/"/g, '""')}"`,
+                    `"${(item.displayDate || item.date || '').replace(/"/g, '""')}"`,
+                    `"${(item.location || '').replace(/"/g, '""')}"`,
+                    `"${(item.category || '').replace(/"/g, '""')}"`,
+                    `"${(item.problem || '').replace(/"/g, '""')}"`,
+                    `"${(item.severity || '').replace(/"/g, '""')}"`,
+                    `"${(item.status || '').replace(/"/g, '""')}"`,
+                    `"${(item.note || '').replace(/"/g, '""')}"`
+                ].join(','));
+            });
+
+            csvContent = lines.join('\r\n');
         } else if (type === 'category') {
-            filename = `category_summary_${new Date().toISOString().slice(0, 10)}.csv`;
-            headers = ['หมวดหมู่', 'รายการความเสียหาย', 'จำนวน (รายการ)'];
-            filteredCategorySummary.forEach(cat => {
-                cat.items.forEach(item => {
-                    rows.push([`"${cat.title}"`, `"${item.name}"`, `"${item.count}"`]);
+            filename = `category_summary_${dateStr}.csv`;
+            const totalCatItems = filteredCategorySummary.reduce((sum, cat) => sum + cat.items.reduce((s, it) => s + it.count, 0), 0);
+            const lines: string[] = [];
+            lines.push('"=== รายงานสรุปรายการแจ้งซ่อมตามหมวดหมู่ ==="');
+            lines.push(`"วันที่พิมพ์รายงาน:","${printDate}"`);
+            lines.push(`"จำนวนรายการความเสียหายรวม:","${totalCatItems} รายการ"`);
+            lines.push('""');
+            lines.push('"หมวดหมู่","รายการความเสียหาย","จำนวน (รายการ)"');
+            filteredCategorySummary.forEach((cat) => {
+                cat.items.forEach((item) => {
+                    lines.push([`"${cat.title}"`, `"${item.name}"`, `"${item.count}"`].join(','));
                 });
             });
+            csvContent = lines.join('\r\n');
         } else if (type === 'monthly') {
-            filename = `monthly_summary_${selectedHistoryMonthYear}_${selectedMonthData.startMonth + 1}_to_${selectedMonthData.endMonth + 1}_${new Date().toISOString().slice(0, 10)}.csv`;
-            headers = ['ช่วงเดือน/ปี', 'จำนวนรายการทั้งหมด', 'ระบบน้ำ', 'สุขภัณฑ์', 'ระบบไฟฟ้า'];
-            rows = [
-                [
-                    `"${selectedMonthData.label}"`,
-                    `"${selectedMonthData.totalRepairs}"`,
-                    `"${selectedMonthData.categories[0].count}"`,
-                    `"${selectedMonthData.categories[1].count}"`,
-                    `"${selectedMonthData.categories[2].count}"`
-                ]
-            ];
+            filename = `monthly_summary_${selectedHistoryMonthYear}_${selectedMonthData.startMonth + 1}_to_${selectedMonthData.endMonth + 1}_${dateStr}.csv`;
+            const lines: string[] = [];
+            lines.push('"=== รายงานสรุปการแจ้งซ่อมประจำช่วงเดือน ==="');
+            lines.push(`"ช่วงเดือน/ปี:","${selectedMonthData.label}"`);
+            lines.push(`"จำนวนรายการทั้งหมด:","${selectedMonthData.totalRepairs} รายการ"`);
+            lines.push('""');
+            lines.push('"ช่วงเดือน/ปี","จำนวนรายการทั้งหมด","ระบบน้ำ","สุขภัณฑ์","ระบบไฟฟ้า"');
+            lines.push([
+                `"${selectedMonthData.label}"`,
+                `"${selectedMonthData.totalRepairs}"`,
+                `"${selectedMonthData.categories[0]?.count || 0}"`,
+                `"${selectedMonthData.categories[1]?.count || 0}"`,
+                `"${selectedMonthData.categories[2]?.count || 0}"`
+            ].join(','));
+
             if (selectedMonthData.records.length > 0) {
-                rows.push([]);
-                rows.push(['--- รายการแจ้งซ่อมในช่วงเดือนที่เลือก ---', '', '', '', '']);
-                rows.push(['ID', 'วัน/เดือน/ปี', 'สถานที่', 'หมวดหมู่/ปัญหา', 'สถานะ']);
-                selectedMonthData.records.forEach(r => {
-                    rows.push([
+                lines.push('""');
+                lines.push(`"=== รายการแจ้งซ่อมในช่วงเดือนที่เลือก (${selectedMonthData.records.length} รายการ) ==="`);
+                lines.push('"ID","วัน/เดือน/ปี","สถานที่","หมวดหมู่/ปัญหา","สถานะ"');
+                selectedMonthData.records.forEach((r) => {
+                    lines.push([
                         `"${r.code}"`,
                         `"${r.displayDate}"`,
                         `"${r.location}"`,
                         `"${r.category} - ${r.problem}"`,
                         `"${r.status}"`
-                    ]);
+                    ].join(','));
                 });
             }
+            csvContent = lines.join('\r\n');
         } else if (type === 'yearly') {
-            filename = `yearly_history_${new Date().toISOString().slice(0, 10)}.csv`;
-            headers = ['ปี', 'จำนวนรายการ', 'ระบบน้ำ', 'สุขภัณฑ์', 'ระบบไฟฟ้า'];
-            rows = displayedYearlyData.map((data) => [
-                `"${data.year}"`, `"${data.totalRepairs}"`,
-                `"${data.categories[0].count}"`, `"${data.categories[1].count}"`, `"${data.categories[2].count}"`
-            ]);
+            filename = `yearly_history_${dateStr}.csv`;
+            const lines: string[] = [];
+            lines.push('"=== รายงานสรุปประวัติการแจ้งซ่อมรายปีย้อนหลัง ==="');
+            lines.push(`"วันที่พิมพ์รายงาน:","${printDate}"`);
+            lines.push('""');
+            lines.push('"ปี","จำนวนรายการ","ระบบน้ำ","สุขภัณฑ์","ระบบไฟฟ้า"');
+            displayedYearlyData.forEach((data) => {
+                lines.push([
+                    `"${data.year}"`,
+                    `"${data.totalRepairs}"`,
+                    `"${data.categories[0]?.count || 0}"`,
+                    `"${data.categories[1]?.count || 0}"`,
+                    `"${data.categories[2]?.count || 0}"`
+                ].join(','));
+            });
+            csvContent = lines.join('\r\n');
         } else if (type === 'ai') {
-            filename = `ai_insight_${new Date().toISOString().slice(0, 10)}.csv`;
-            headers = ['ส่วนงาน', 'รายละเอียด / ข้อเสนอแนะ'];
-            rows = [
-                ['"สรุปภาพรวมปัญหาประจำเดือน"', `"${(aiInsight.summaryText || '').replace(/"/g, '""')}"`],
-                ...aiInsight.suggestions.map((s, idx) => [
-                    `"ข้อเสนอแนะในการปรับปรุง ${idx + 1}"`,
-                    `"${s.replace(/"/g, '""')}"`
-                ])
-            ];
+            filename = `ai_insight_${dateStr}.csv`;
+            const lines: string[] = [];
+            lines.push('"=== AI Insight ประจำเดือน ==="');
+            lines.push(`"วันที่พิมพ์รายงาน:","${printDate}"`);
+            lines.push('""');
+            lines.push('"ส่วนงาน","รายละเอียด / ข้อเสนอแนะ"');
+            lines.push(`"สรุปภาพรวมปัญหาประจำเดือน","${(aiInsight.summaryText || '').replace(/"/g, '""')}"`);
+            aiInsight.suggestions.forEach((s, idx) => {
+                lines.push([`"ข้อเสนอแนะในการปรับปรุง ${idx + 1}"`, `"${s.replace(/"/g, '""')}"`].join(','));
+            });
+            csvContent = lines.join('\r\n');
         }
 
-        const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
         const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -845,10 +1603,14 @@ export default function ComplaintsPage() {
         URL.revokeObjectURL(url);
     };
 
+    const exportToCSV = (type: string) => {
+        exportData(type, exportFormat);
+    };
+
     const handleExecuteExport = () => {
         setIsExportOpen(false);
-        exportToCSV(exportOption);
-        showToast(`ส่งออกไฟล์ CSV เรียบร้อยแล้ว`);
+        exportData(exportOption, exportFormat);
+        showToast(`ส่งออกไฟล์ ${exportFormat === 'excel' ? 'Excel (.xls)' : 'CSV (.csv)'} เรียบร้อยแล้ว`);
     };
 
     // รับเรื่องรายการเดี่ยว หรือเปิด Modal รายการซ้ำ
@@ -1094,6 +1856,20 @@ export default function ComplaintsPage() {
                             <Filter className="w-4 h-4 text-white absolute right-4 pointer-events-none" />
                         </div>
 
+                        <div className="relative inline-flex items-center w-full sm:w-auto">
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="appearance-none bg-[#6B21A8] hover:bg-purple-900 text-white text-xs sm:text-sm font-bold rounded-2xl pl-5 pr-10 py-2.5 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors w-full sm:w-auto"
+                            >
+                                <option value="ทั้งหมด">เลือกสถานะ (ทั้งหมด)</option>
+                                <option value="รอรับเรื่อง">รอรับเรื่อง</option>
+                                <option value="รับเรื่อง">รับเรื่อง</option>
+                                <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>
+                            </select>
+                            <Filter className="w-4 h-4 text-white absolute right-4 pointer-events-none" />
+                        </div>
+
                         <div className="relative inline-flex items-center justify-between sm:justify-start gap-2 bg-[#6B21A8] hover:bg-purple-900 text-white rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold shadow-sm transition-colors w-full sm:w-auto">
                             <span className="text-xs sm:text-sm text-white font-bold whitespace-nowrap">เริ่ม:</span>
                             <input
@@ -1201,13 +1977,14 @@ export default function ComplaintsPage() {
                                         <th className="p-3">หมวดหมู่/ปัญหา</th>
                                         <th className="p-3 text-center">ระดับความสำคัญ</th>
                                         <th className="p-3 text-center">สถานะ</th>
+                                        <th className="p-3 text-center">เปิด/ปิดการแจ้งซ้ำ</th>
                                         <th className="p-3 text-center">รายละเอียด</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-purple-100 text-xs text-gray-700 bg-white">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={deleteModeTable === 'latest' ? 8 : 7} className="text-center py-8 text-gray-500">
+                                            <td colSpan={deleteModeTable === 'latest' ? 9 : 8} className="text-center py-8 text-gray-500">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
                                                     <span>กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</span>
@@ -1216,7 +1993,7 @@ export default function ComplaintsPage() {
                                         </tr>
                                     ) : filteredComplaints.length === 0 ? (
                                         <tr>
-                                            <td colSpan={deleteModeTable === 'latest' ? 8 : 7} className="text-center py-8 text-gray-400">
+                                            <td colSpan={deleteModeTable === 'latest' ? 9 : 8} className="text-center py-8 text-gray-400">
                                                 ไม่พบข้อมูลรายการแจ้งซ่อม
                                             </td>
                                         </tr>
@@ -1259,6 +2036,28 @@ export default function ComplaintsPage() {
                                                         {renderStatusBadge(item.status)}
                                                     </td>
                                                     <td className="p-3 text-center">
+                                                        <label
+                                                            className="inline-flex items-center justify-center cursor-pointer gap-1.5 select-none"
+                                                            title={item.is_repeat_blocked ? "ปิดการแจ้งซ้ำอยู่ (คลิกเพื่อเปิดรับแจ้ง)" : "เปิดรับแจ้งอยู่ (คลิกเพื่อปิดรับแจ้งซ้ำ)"}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(item.is_repeat_blocked)}
+                                                                onChange={(e) => handleToggleRepeatBlocked(item.id, e.target.checked)}
+                                                                className="w-4 h-4 rounded text-purple-700 focus:ring-purple-400 accent-purple-700 cursor-pointer"
+                                                            />
+                                                            <span
+                                                                className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
+                                                                    item.is_repeat_blocked
+                                                                        ? 'bg-red-50 text-red-600 border-red-200'
+                                                                        : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                                }`}
+                                                            >
+                                                                {item.is_repeat_blocked ? 'ปิดแจ้งซ้ำ' : 'เปิดแจ้ง'}
+                                                            </span>
+                                                        </label>
+                                                    </td>
+                                                    <td className="p-3 text-center">
                                                         <button
                                                             onClick={() => {
                                                                 setActiveComplaint(item);
@@ -1296,7 +2095,7 @@ export default function ComplaintsPage() {
                         </div>
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                             <span className="text-xs bg-purple-900/60 text-purple-100 px-3 py-1 rounded-full font-medium border border-purple-400 hidden sm:inline">
-                                รวมทั้งหมด {groupedComplaintsByRepeat.length} กลุ่มรายการ
+                                รวมทั้งหมด {groupedComplaintsByRepeat.length} กลุ่มรายการซ้ำ
                             </span>
                             {deleteModeTable === 'all' && isAllOpen && (
                                 <button
@@ -1304,7 +2103,7 @@ export default function ComplaintsPage() {
                                     className="flex items-center gap-1.5 text-xs bg-purple-800 hover:bg-purple-950 px-3 py-1.5 rounded-xl border border-purple-400 transition-colors text-purple-100 font-semibold"
                                     title="เลือกทั้งหมด"
                                 >
-                                    {selectedIds.length === filteredComplaints.length && filteredComplaints.length > 0 ? (
+                                    {allRepeatTableIds.length > 0 && allRepeatTableIds.every(id => selectedIds.includes(id)) ? (
                                         <CheckSquare className="w-4 h-4 text-purple-300" />
                                     ) : (
                                         <Square className="w-4 h-4 text-purple-300" />
@@ -1368,7 +2167,7 @@ export default function ComplaintsPage() {
                                     ) : groupedComplaintsByRepeat.length === 0 ? (
                                         <tr>
                                             <td colSpan={deleteModeTable === 'all' ? 9 : 8} className="text-center py-8 text-gray-400">
-                                                ไม่พบข้อมูล
+                                                ไม่พบข้อมูลรายการที่มีการแจ้งซ้ำ
                                             </td>
                                         </tr>
                                     ) : (
@@ -1982,23 +2781,53 @@ export default function ComplaintsPage() {
 
                         <div className="mb-6">
                             <label className="block font-semibold text-gray-700 text-xs mb-2">รูปแบบไฟล์ส่งออก:</label>
-                            <div className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-700 font-bold text-xs shadow-xs">
-                                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                                <span>ไฟล์ CSV (Comma Separated Values)</span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setExportFormat('excel')}
+                                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                        exportFormat === 'excel'
+                                            ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-400/30 shadow-xs'
+                                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                    <span>Excel (.xls) [แนะนำ]</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setExportFormat('csv')}
+                                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                        exportFormat === 'csv'
+                                            ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-400/30 shadow-xs'
+                                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <FileText className="w-4 h-4 text-blue-600" />
+                                    <span>CSV (.csv)</span>
+                                </button>
+                            </div>
+                            <div className="mt-2.5 p-2.5 rounded-xl bg-purple-50/60 border border-purple-100 text-[11px] text-gray-600 flex items-start gap-2">
+                                <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0 mt-0.5" />
+                                <span>
+                                    {exportFormat === 'excel'
+                                        ? '✨ แนะนำ: ปรับขนาดความกว้างช่อง (Cell) กว้างพอดี อ่านข้อความยาวได้ครบถ้วน ไม่โดนตัด พร้อมสรุปจำนวนเรื่องและความถี่แต่ละชั้น'
+                                        : 'ℹ️ ไฟล์ CSV มาตรฐานพร้อมสรุปจำนวนเรื่องแจ้งเข้าและความถี่แต่ละชั้นที่ส่วนหัวของตาราง'}
+                                </span>
                             </div>
                         </div>
 
                         <div className="flex gap-3">
                             <button
                                 onClick={handleExecuteExport}
-                                className="flex-1 bg-[#6B21A8] hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
+                                className="flex-1 bg-[#6B21A8] hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                             >
                                 <Download className="w-4 h-4" />
-                                <span>ดาวน์โหลด CSV</span>
+                                <span>ดาวน์โหลด {exportFormat === 'excel' ? 'Excel (.xls)' : 'CSV (.csv)'}</span>
                             </button>
                             <button
                                 onClick={() => setIsExportOpen(false)}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors"
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
                             >
                                 ยกเลิก
                             </button>
@@ -2042,7 +2871,7 @@ export default function ComplaintsPage() {
             {/* ---------------- Modal ยืนยันรายละเอียดปัญหา ---------------- */}
             {activeComplaint && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150 font-sans">
-                    <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-purple-100 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative border border-purple-100 max-h-[90vh] overflow-y-auto">
                         <button
                             onClick={() => {
                                 setActiveComplaint(null);
@@ -2057,7 +2886,7 @@ export default function ComplaintsPage() {
                             รายละเอียดปัญหา
                         </h3>
 
-                        <div className="text-xs text-center space-y-1.5 text-gray-700 mb-5 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                        <div className="text-xs text-center space-y-1.5 text-gray-700 mb-4 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
                             <p><span className="font-semibold">วันเวลาที่แจ้ง :</span> {activeComplaint.displayDate}</p>
                             <p><span className="font-semibold">รหัสแจ้ง :</span> {activeComplaint.code}</p>
                             <p><span className="font-semibold">สถานที่ :</span> {activeComplaint.location}</p>
@@ -2073,34 +2902,67 @@ export default function ComplaintsPage() {
                             )}
                         </div>
 
+                        {/* แสดงรูปภาพทันทีและมีปุ่มดาวน์โหลดรูป */}
                         <div className="mb-4">
-                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">ไฟล์ภาพ</label>
-                            <button
-                                onClick={async () => {
-                                    setViewImageModal(true);
-                                    if (!activeComplaint.imageUrl || activeComplaint.imageUrl === '/photo/ปัญหาสายชำระชำรุด.jpg') {
-                                        try {
-                                            setIsLoadingImage(true);
-                                            const res = await fetch(`/api/requests/${activeComplaint.id}`);
-                                            const data = await res.json();
-                                            if (data.success && data.data?.image_url) {
-                                                setActiveComplaint((prev) => prev ? { ...prev, imageUrl: data.data.image_url } : null);
-                                            }
-                                        } catch (err) {
-                                            console.error('Failed to load image on demand:', err);
-                                        } finally {
-                                            setIsLoadingImage(false);
-                                        }
-                                    }
-                                }}
-                                className="w-full flex items-center justify-between border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-600 hover:border-purple-400 hover:bg-purple-50/30 transition-colors"
-                            >
-                                <span className="flex items-center gap-2 truncate">
-                                    <Eye className="w-4 h-4 text-purple-600 shrink-0" />
-                                    <span>คลิกเพื่อเปิดดูรูปถ่ายความเสียหาย</span>
-                                </span>
-                                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
-                            </button>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-bold text-gray-700">รูปภาพความเสียหาย</label>
+                                {activeComplaint.imageUrl && !isLoadingImage && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDownloadImage(activeComplaint.imageUrl, `complaint_${activeComplaint.code.replace(/[^a-zA-Z0-9_-]/g, '')}`)}
+                                        className="flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100/80 hover:bg-purple-200 border border-purple-300 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                                        title="ดาวน์โหลดรูปภาพ"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        <span>ดาวน์โหลดรูปภาพ</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl overflow-hidden bg-gray-50 border border-purple-200/60 min-h-[160px] max-h-[260px] flex items-center justify-center relative group">
+                                {isLoadingImage ? (
+                                    <div className="py-10 flex flex-col items-center justify-center gap-2 text-gray-500">
+                                        <Loader2 className="w-7 h-7 animate-spin text-purple-600" />
+                                        <span className="text-xs font-medium">กำลังโหลดรูปภาพประกอบ...</span>
+                                    </div>
+                                ) : activeComplaint.imageUrl ? (
+                                    <>
+                                        <img
+                                            src={activeComplaint.imageUrl}
+                                            alt="รูปภาพความเสียหาย"
+                                            onClick={() => setViewImageModal(true)}
+                                            className="w-full h-full max-h-[260px] object-contain cursor-pointer hover:opacity-95 transition-opacity"
+                                            title="คลิกเพื่อดูภาพขนาดใหญ่"
+                                        />
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-xs p-1 rounded-lg opacity-90 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewImageModal(true)}
+                                                className="text-white hover:text-purple-200 p-1 text-[11px] font-semibold flex items-center gap-1"
+                                                title="ดูภาพขนาดใหญ่"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">ขยายภาพ</span>
+                                            </button>
+                                            <span className="text-white/40">|</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadImage(activeComplaint.imageUrl, `complaint_${activeComplaint.code.replace(/[^a-zA-Z0-9_-]/g, '')}`)}
+                                                className="text-white hover:text-purple-200 p-1 text-[11px] font-semibold flex items-center gap-1"
+                                                title="ดาวน์โหลดรูปภาพ"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">โหลดรูป</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="py-10 text-gray-400 text-xs text-center flex flex-col items-center justify-center gap-1">
+                                        <Eye className="w-6 h-6 text-gray-300" />
+                                        <span>ไม่มีรูปภาพแนบสำหรับรายการนี้</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {activeComplaint.status === 'รอรับเรื่อง' ? (
@@ -2201,17 +3063,29 @@ export default function ComplaintsPage() {
             {/* ---------------- Modal แสดงรูปภาพ ---------------- */}
             {viewImageModal && activeComplaint && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150 font-sans">
-                    <div className="bg-[#FFFFFF] rounded-2xl max-w-lg w-full p-4 relative shadow-2xl">
+                    <div className="bg-[#FFFFFF] rounded-2xl max-w-2xl w-full p-4 sm:p-5 relative shadow-2xl">
+                        <div className="flex items-center justify-between mb-3 pr-8">
+                            <h4 className="text-sm font-bold text-gray-800">
+                                รูปภาพประกอบ: {activeComplaint.code}
+                            </h4>
+                            {activeComplaint.imageUrl && (
+                                <button
+                                    onClick={() => handleDownloadImage(activeComplaint.imageUrl, `complaint_${activeComplaint.code.replace(/[^a-zA-Z0-9_-]/g, '')}`)}
+                                    className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#6B21A8] hover:bg-purple-900 px-3 py-1.5 rounded-xl transition-colors shadow-xs"
+                                    title="ดาวน์โหลดรูปภาพ"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span>ดาวน์โหลดรูปภาพ</span>
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={() => setViewImageModal(false)}
-                            className="absolute right-3 top-3 bg-black/50 text-white hover:bg-black p-1.5 rounded-full transition-colors z-10"
+                            className="absolute right-3 top-3 bg-gray-100 hover:bg-gray-200 text-gray-600 p-1.5 rounded-full transition-colors z-10"
                         >
                             <X className="w-5 h-5" />
                         </button>
-                        <h4 className="text-sm font-bold text-gray-800 mb-3">
-                            รูปภาพประกอบ: {activeComplaint.code}
-                        </h4>
-                        <div className="rounded-xl overflow-hidden bg-gray-100 min-h-[200px] max-h-[70vh] flex items-center justify-center">
+                        <div className="rounded-xl overflow-hidden bg-gray-100 min-h-[200px] max-h-[75vh] flex items-center justify-center">
                             {isLoadingImage ? (
                                 <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-500">
                                     <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -2221,7 +3095,7 @@ export default function ComplaintsPage() {
                                 <img
                                     src={activeComplaint.imageUrl}
                                     alt="รูปภาพความเสียหาย"
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full max-h-[75vh] object-contain"
                                 />
                             ) : (
                                 <div className="py-12 text-gray-400 text-xs text-center">

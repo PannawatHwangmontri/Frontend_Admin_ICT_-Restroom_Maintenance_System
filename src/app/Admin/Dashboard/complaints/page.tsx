@@ -96,7 +96,7 @@ const initialComplaints: Complaint[] = [
         category: 'ระบบน้ำ',
         problem: 'สายฉีดชำระเสีย 3 ชุด',
         severity: 'ปกติ',
-        status: 'รอรับเรื่อง',
+        status: 'กำลังซ่อมแซม',
         repeatCount: 3,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
         note: '',
@@ -111,7 +111,7 @@ const initialComplaints: Complaint[] = [
         category: 'ระบบน้ำ',
         problem: 'ท่อน้ำรั่ว 3 จุด',
         severity: 'เร่งด่วน',
-        status: 'รอรับเรื่อง',
+        status: 'รับเรื่อง',
         repeatCount: 2,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
         note: '',
@@ -126,7 +126,7 @@ const initialComplaints: Complaint[] = [
         category: 'ระบบไฟฟ้า',
         problem: 'หลอดไฟเสีย 3 หลอด',
         severity: 'ปกติ',
-        status: 'รับเรื่อง',
+        status: 'กำลังซ่อมแซม',
         repeatCount: 1,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
         note: '',
@@ -141,34 +141,48 @@ const initialComplaints: Complaint[] = [
         category: 'สุขภัณฑ์',
         problem: 'โถส้วมชำรุด 3 ชุด',
         severity: 'เร่งด่วน',
-        status: 'ไม่รับเรื่อง',
+        status: 'ซ่อมเสร็จแล้ว',
         repeatCount: 1,
         imageUrl: '/photo/ปัญหาสายชำระชำรุด.jpg',
-        note: 'ข้อมูลซ้ำซ้อนกับเคส #ST2-01 ที่กำลังดำเนินการอยู่',
+        note: 'ดำเนินการแก้ไขเรียบร้อยแล้ว',
         is_repeat_blocked: false
     }
 ];
 
-// ปรับแต่งสถานะให้มี 3 สถานะ: รอรับเรื่อง (สีเหลือง), รับเรื่อง (สีเขียว), ไม่รับเรื่อง (สีแดง)
+// ปรับแต่งสถานะให้รองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว"
 const renderStatusBadge = (status: string) => {
-    if (status === 'รับเรื่อง') {
+    if (status === 'ซ่อมเสร็จแล้ว' || status === 'เสร็จสิ้น') {
         return (
-            <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] border border-[#A7F3D0] text-center shadow-xs">
+            <span className="inline-block w-[95px] py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#059669] border border-[#A7F3D0] text-center shadow-xs">
+                ซ่อมเสร็จแล้ว
+            </span>
+        );
+    }
+    if (status === 'กำลังซ่อมแซม' || status === 'กำลังดำเนินการ') {
+        return (
+            <span className="inline-block w-[95px] py-1.5 rounded-full text-xs font-bold bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A] text-center shadow-xs">
+                กำลังซ่อมแซม
+            </span>
+        );
+    }
+    if (status === 'รับเรื่อง' || status === 'แจ้งแล้ว') {
+        return (
+            <span className="inline-block w-[95px] py-1.5 rounded-full text-xs font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE] text-center shadow-xs">
                 รับเรื่อง
             </span>
         );
     }
-    if (status === 'ไม่รับเรื่อง') {
+    if (status === 'ไม่รับเรื่อง' || status === 'ยกเลิก') {
         return (
-            <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] text-center shadow-xs">
+            <span className="inline-block w-[95px] py-1.5 rounded-full text-xs font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] text-center shadow-xs">
                 ไม่รับเรื่อง
             </span>
         );
     }
-    // รอรับเรื่อง (สีเหลือง)
+    // รอรับเรื่อง หรือสถานะอื่น
     return (
-        <span className="inline-block w-[90px] py-1.5 rounded-full text-xs font-bold bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A] text-center shadow-xs">
-            รอรับเรื่อง
+        <span className="inline-block w-[95px] py-1.5 rounded-full text-xs font-bold bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB] text-center shadow-xs">
+            {status || 'รอรับเรื่อง'}
         </span>
     );
 };
@@ -376,12 +390,21 @@ export default function ComplaintsPage() {
                         cat = 'สุขภัณฑ์';
                     }
 
-                    // รับเฉพาะสถานะมาตรฐาน 3 สถานะ
-                    const currentStatus = ['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(item.status)
-                        ? 'รับเรื่อง'
-                        : ['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)
-                            ? 'ไม่รับเรื่อง'
-                            : 'รอรับเรื่อง';
+                    // รองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว"
+                    let currentStatus = 'รับเรื่อง';
+                    if (['ซ่อมเสร็จแล้ว', 'เสร็จสิ้น'].includes(item.status)) {
+                        currentStatus = 'ซ่อมเสร็จแล้ว';
+                    } else if (['กำลังซ่อมแซม', 'กำลังดำเนินการ'].includes(item.status)) {
+                        currentStatus = 'กำลังซ่อมแซม';
+                    } else if (['รับเรื่อง', 'แจ้งแล้ว'].includes(item.status)) {
+                        currentStatus = 'รับเรื่อง';
+                    } else if (['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)) {
+                        currentStatus = 'ไม่รับเรื่อง';
+                    } else if (item.status === 'รอรับเรื่อง') {
+                        currentStatus = 'รอรับเรื่อง';
+                    } else {
+                        currentStatus = item.status || 'รับเรื่อง';
+                    }
 
                     const loc = (item.location || '').trim();
                     const prob = (item.issue_summary || '').trim();
@@ -1807,6 +1830,111 @@ ${selectedMonthData.records.length > 0 ? `
         }
     };
 
+    // อัปเดตสถานะสำหรับรายการที่เปิดใน Modal (รองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว")
+    const handleUpdateStatus = async (targetStatus: string, customNotification?: string) => {
+        if (!activeComplaint) return;
+
+        setIsUpdating(true);
+        try {
+            const sameDayDuplicates = complaints.filter(
+                c => c.date === activeComplaint.date &&
+                    (c.location || '').trim().toLowerCase() === (activeComplaint.location || '').trim().toLowerCase() &&
+                    (c.problem || '').trim().toLowerCase() === (activeComplaint.problem || '').trim().toLowerCase()
+            );
+
+            const groupSubItems = (activeComplaint as any).subItems || [];
+            const targetIds = Array.from(new Set([
+                activeComplaint.id,
+                ...groupSubItems.map((s: any) => s.id),
+                ...sameDayDuplicates.map(d => d.id)
+            ]));
+
+            const noteToSave = remarkNote.trim() || activeComplaint.note || '';
+
+            const defaultNotification = targetStatus === 'กำลังซ่อมแซม'
+                ? 'เจ้าหน้าที่กำลังดำเนินการซ่อมแซม'
+                : targetStatus === 'ซ่อมเสร็จแล้ว'
+                    ? 'เจ้าหน้าที่ดำเนินการซ่อมแซมเสร็จสิ้นเรียบร้อยแล้ว'
+                    : targetStatus === 'รับเรื่อง'
+                        ? 'เจ้าหน้าที่รับเรื่องเรียบร้อยแล้ว กำลังเตรียมการเข้าซ่อม'
+                        : `อัปเดตสถานะเป็น: ${targetStatus}`;
+
+            await Promise.all(targetIds.map(id =>
+                fetch(`/api/requests/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: targetStatus,
+                        remark: noteToSave,
+                        notification_message: customNotification || defaultNotification,
+                    }),
+                })
+            ));
+
+            setComplaints((prev) =>
+                prev.map((item) =>
+                    targetIds.includes(item.id)
+                        ? { ...item, status: targetStatus, note: noteToSave }
+                        : item
+                )
+            );
+
+            setActiveComplaint((prev) =>
+                prev ? { ...prev, status: targetStatus, note: noteToSave } : null
+            );
+
+            showToast(targetIds.length > 1
+                ? `เปลี่ยนสถานะเป็น "${targetStatus}" รวม ${targetIds.length} รายการเรียบร้อยแล้ว`
+                : `เปลี่ยนสถานะเป็น "${targetStatus}" เรียบร้อยแล้ว`
+            );
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showToast('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    // อัปเดตสถานะอย่างรวดเร็ว (Quick Change) จากตาราง
+    const handleQuickChangeStatus = async (complaintId: string, newStatus: string) => {
+        setIsUpdating(true);
+        try {
+            const defaultNotification = newStatus === 'กำลังซ่อมแซม'
+                ? 'เจ้าหน้าที่กำลังดำเนินการซ่อมแซม'
+                : newStatus === 'ซ่อมเสร็จแล้ว'
+                    ? 'เจ้าหน้าที่ดำเนินการซ่อมแซมเสร็จสิ้นเรียบร้อยแล้ว'
+                    : newStatus === 'รับเรื่อง'
+                        ? 'เจ้าหน้าที่รับเรื่องเรียบร้อยแล้ว กำลังเตรียมการเข้าซ่อม'
+                        : `อัปเดตสถานะเป็น: ${newStatus}`;
+
+            const res = await fetch(`/api/requests/${complaintId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: newStatus,
+                    notification_message: defaultNotification,
+                }),
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setComplaints((prev) =>
+                    prev.map((item) =>
+                        item.id === complaintId ? { ...item, status: newStatus } : item
+                    )
+                );
+                showToast(`เปลี่ยนสถานะเป็น "${newStatus}" เรียบร้อยแล้ว`);
+            } else {
+                throw new Error(data.message || 'เกิดข้อผิดพลาด');
+            }
+        } catch (error: any) {
+            console.error('Error quick updating status:', error);
+            showToast(error.message || 'ไม่สามารถอัปเดตสถานะได้');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     const isAcceptDisabled = remarkNote.trim().length > 0;
 
     return (
@@ -1863,8 +1991,10 @@ ${selectedMonthData.records.length > 0 ? `
                                 className="appearance-none bg-[#6B21A8] hover:bg-purple-900 text-white text-xs sm:text-sm font-bold rounded-2xl pl-5 pr-10 py-2.5 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors w-full sm:w-auto"
                             >
                                 <option value="ทั้งหมด">เลือกสถานะ (ทั้งหมด)</option>
-                                <option value="รอรับเรื่อง">รอรับเรื่อง</option>
                                 <option value="รับเรื่อง">รับเรื่อง</option>
+                                <option value="กำลังซ่อมแซม">กำลังซ่อมแซม</option>
+                                <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว</option>
+                                <option value="รอรับเรื่อง">รอรับเรื่อง</option>
                                 <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>
                             </select>
                             <Filter className="w-4 h-4 text-white absolute right-4 pointer-events-none" />
@@ -2033,7 +2163,22 @@ ${selectedMonthData.records.length > 0 ? `
                                                         </span>
                                                     </td>
                                                     <td className="p-3 text-center">
-                                                        {renderStatusBadge(item.status)}
+                                                        <div className="inline-flex flex-col items-center gap-1">
+                                                            {renderStatusBadge(item.status)}
+                                                            <select
+                                                                value={item.status}
+                                                                onChange={(e) => handleQuickChangeStatus(item.id, e.target.value)}
+                                                                disabled={isUpdating}
+                                                                className="text-[10px] text-gray-600 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none transition-colors"
+                                                                title="เลือกเปลี่ยนสถานะ"
+                                                            >
+                                                                <option value="รับเรื่อง">รับเรื่อง</option>
+                                                                <option value="กำลังซ่อมแซม">กำลังซ่อมแซม</option>
+                                                                <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว</option>
+                                                                {item.status === 'ไม่รับเรื่อง' && <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>}
+                                                                {item.status === 'รอรับเรื่อง' && <option value="รอรับเรื่อง">รอรับเรื่อง</option>}
+                                                            </select>
+                                                        </div>
                                                     </td>
                                                     <td className="p-3 text-center">
                                                         <label
@@ -2231,7 +2376,22 @@ ${selectedMonthData.records.length > 0 ? `
                                                             </span>
                                                         </td>
                                                         <td className="p-3 text-center">
-                                                            {renderStatusBadge(group.status)}
+                                                            <div className="inline-flex flex-col items-center gap-1">
+                                                                {renderStatusBadge(group.status)}
+                                                                <select
+                                                                    value={group.status}
+                                                                    onChange={(e) => handleQuickChangeStatus(group.id, e.target.value)}
+                                                                    disabled={isUpdating}
+                                                                    className="text-[10px] text-gray-600 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none transition-colors"
+                                                                    title="เลือกเปลี่ยนสถานะ"
+                                                                >
+                                                                    <option value="รับเรื่อง">รับเรื่อง</option>
+                                                                    <option value="กำลังซ่อมแซม">กำลังซ่อมแซม</option>
+                                                                    <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว</option>
+                                                                    {group.status === 'ไม่รับเรื่อง' && <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>}
+                                                                    {group.status === 'รอรับเรื่อง' && <option value="รอรับเรื่อง">รอรับเรื่อง</option>}
+                                                                </select>
+                                                            </div>
                                                         </td>
                                                         <td className="p-3 text-center">
                                                             <button
@@ -2282,7 +2442,22 @@ ${selectedMonthData.records.length > 0 ? `
                                                                 </span>
                                                             </td>
                                                             <td className="p-2.5 text-center">
-                                                                {renderStatusBadge(subItem.status)}
+                                                                <div className="inline-flex flex-col items-center gap-1">
+                                                                    {renderStatusBadge(subItem.status)}
+                                                                    <select
+                                                                        value={subItem.status}
+                                                                        onChange={(e) => handleQuickChangeStatus(subItem.id, e.target.value)}
+                                                                        disabled={isUpdating}
+                                                                        className="text-[10px] text-gray-600 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded px-1 py-0.5 cursor-pointer focus:outline-none transition-colors"
+                                                                        title="เลือกเปลี่ยนสถานะ"
+                                                                    >
+                                                                        <option value="รับเรื่อง">รับเรื่อง</option>
+                                                                        <option value="กำลังซ่อมแซม">กำลังซ่อมแซม</option>
+                                                                        <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว</option>
+                                                                        {subItem.status === 'ไม่รับเรื่อง' && <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>}
+                                                                        {subItem.status === 'รอรับเรื่อง' && <option value="รอรับเรื่อง">รอรับเรื่อง</option>}
+                                                                    </select>
+                                                                </div>
                                                             </td>
                                                             <td className="p-2.5 text-center">
                                                                 <button
@@ -2965,49 +3140,104 @@ ${selectedMonthData.records.length > 0 ? `
                             </div>
                         </div>
 
-                        {activeComplaint.status === 'รอรับเรื่อง' ? (
-                            <>
-                                <div className="mb-5">
-                                    <input
-                                        type="text"
-                                        value={remarkNote}
-                                        onChange={(e) => setRemarkNote(e.target.value)}
-                                        placeholder="*หมายเหตุ กรณีไม่รับเรื่อง"
-                                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-gray-400"
-                                    />
-                                </div>
+                        {/* ช่องกรอกหมายเหตุ */}
+                        <div className="mb-4">
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                หมายเหตุ / รายละเอียดการดำเนินการ:
+                            </label>
+                            <input
+                                type="text"
+                                value={remarkNote}
+                                onChange={(e) => setRemarkNote(e.target.value)}
+                                placeholder="ระบุหมายเหตุ (ถ้ามี)"
+                                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-gray-400"
+                            />
+                        </div>
 
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleAcceptMain}
-                                        disabled={isAcceptDisabled || isUpdating}
-                                        className={`flex-1 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 ${isAcceptDisabled || isUpdating
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer'
-                                            }`}
-                                    >
-                                        {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                        <span>รับเรื่อง</span>
-                                    </button>
+                        {/* การจัดการ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", "ซ่อมเสร็จแล้ว" */}
+                        <div className="space-y-3">
+                            <label className="block text-xs font-bold text-gray-700">
+                                เปลี่ยนสถานะการดำเนินงาน:
+                            </label>
 
-                                    <button
-                                        onClick={handleRejectMain}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {/* 1. ปุ่มสถานะ "รับเรื่อง" */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus('รับเรื่อง')}
+                                    disabled={isUpdating || activeComplaint.status === 'รับเรื่อง'}
+                                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs ${
+                                        activeComplaint.status === 'รับเรื่อง'
+                                            ? 'bg-blue-100 text-blue-700 border-2 border-blue-400 ring-2 ring-blue-300/40 cursor-default'
+                                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer active:scale-98'
+                                    } disabled:opacity-60`}
+                                    title="เปลี่ยนสถานะเป็น รับเรื่อง"
+                                >
+                                    {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                                    <span>รับเรื่อง</span>
+                                </button>
+
+                                {/* 2. ปุ่มสถานะ "กำลังซ่อมแซม" (ตาม Requirement) */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus('กำลังซ่อมแซม')}
+                                    disabled={isUpdating || activeComplaint.status === 'กำลังซ่อมแซม'}
+                                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs ${
+                                        activeComplaint.status === 'กำลังซ่อมแซม'
+                                            ? 'bg-amber-100 text-amber-800 border-2 border-amber-400 ring-2 ring-amber-300/40 cursor-default'
+                                            : 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer active:scale-98'
+                                    } disabled:opacity-60`}
+                                    title="เปลี่ยนสถานะเป็น กำลังซ่อมแซม"
+                                >
+                                    {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wrench className="w-3.5 h-3.5" />}
+                                    <span>กำลังซ่อมแซม</span>
+                                </button>
+
+                                {/* 3. ปุ่มสถานะ "ซ่อมเสร็จแล้ว" */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus('ซ่อมเสร็จแล้ว')}
+                                    disabled={isUpdating || activeComplaint.status === 'ซ่อมเสร็จแล้ว'}
+                                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs col-span-2 sm:col-span-1 ${
+                                        activeComplaint.status === 'ซ่อมเสร็จแล้ว'
+                                            ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-400 ring-2 ring-emerald-300/40 cursor-default'
+                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-98'
+                                    } disabled:opacity-60`}
+                                    title="เปลี่ยนสถานะเป็น ซ่อมเสร็จแล้ว"
+                                >
+                                    {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    <span>ซ่อมเสร็จแล้ว</span>
+                                </button>
+                            </div>
+
+                            {/* ตัวเลือก / ปุ่มปฏิเสธไม่รับเรื่อง */}
+                            <div className="pt-2 border-t border-purple-100 flex items-center justify-between gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleRejectMain}
+                                    disabled={isUpdating || activeComplaint.status === 'ไม่รับเรื่อง'}
+                                    className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>ไม่รับเรื่อง</span>
+                                </button>
+
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                    <span>ตัวเลือกสถานะ:</span>
+                                    <select
+                                        value={activeComplaint.status}
+                                        onChange={(e) => handleUpdateStatus(e.target.value)}
                                         disabled={isUpdating}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+                                        className="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
                                     >
-                                        {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                        <span>ไม่รับเรื่อง</span>
-                                    </button>
+                                        <option value="รับเรื่อง">รับเรื่อง</option>
+                                        <option value="กำลังซ่อมแซม">กำลังซ่อมแซม</option>
+                                        <option value="ซ่อมเสร็จแล้ว">ซ่อมเสร็จแล้ว</option>
+                                        <option value="ไม่รับเรื่อง">ไม่รับเรื่อง</option>
+                                    </select>
                                 </div>
-                            </>
-                        ) : (
-                            activeComplaint.note && (
-                                <div className="mb-2 p-3 bg-gray-50 rounded-xl border border-purple-100 text-xs text-gray-700">
-                                    <span className="font-semibold text-purple-900">หมายเหตุ: </span>
-                                    {activeComplaint.note}
-                                </div>
-                            )
-                        )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

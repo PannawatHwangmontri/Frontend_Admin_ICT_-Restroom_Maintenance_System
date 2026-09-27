@@ -79,7 +79,7 @@ const floorData = [
     }
 ];
 
-// ข้อมูลจำลองรองรับ 3 สถานะสำรองกรณีไม่ได้เชื่อม Database
+// ข้อมูลจำลองรองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว"
 const initialReportList = [
     {
         id: '1',
@@ -101,7 +101,7 @@ const initialReportList = [
         category: 'หมวดหมู่ ระบบน้ำ',
         problem: 'ระบบน้ำ สายฉีดชำระเสีย 3 ชุด',
         severity: 'ปกติ',
-        status: 'รอรับเรื่อง'
+        status: 'กำลังซ่อมแซม'
     },
     {
         id: '3',
@@ -112,7 +112,7 @@ const initialReportList = [
         category: 'หมวดหมู่ ระบบน้ำ',
         problem: 'ระบบน้ำ ท่อน้ำรั่ว 3 จุด',
         severity: 'เร่งด่วน',
-        status: 'รอรับเรื่อง'
+        status: 'รับเรื่อง'
     },
     {
         id: '4',
@@ -123,7 +123,7 @@ const initialReportList = [
         category: 'หมวดหมู่ ระบบไฟฟ้า',
         problem: 'ระบบไฟฟ้า หลอดไฟเสีย 3 หลอด',
         severity: 'ปกติ',
-        status: 'รับเรื่อง'
+        status: 'กำลังซ่อมแซม'
     },
     {
         id: '5',
@@ -134,7 +134,7 @@ const initialReportList = [
         category: 'หมวดหมู่ สุขภัณฑ์',
         problem: 'สุขภัณฑ์ โถส้วมชำรุด 3 ชุด',
         severity: 'เร่งด่วน',
-        status: 'ไม่รับเรื่อง'
+        status: 'ซ่อมเสร็จแล้ว'
     },
 ];
 
@@ -197,12 +197,21 @@ export default function ProgressReportPage() {
                     else if (loc.includes('ชั้น 3')) floorName = 'ชั้น 3';
                     else if (loc.includes('ชั้น 4')) floorName = 'ชั้น 4';
 
-                    // รับเฉพาะสถานะมาตรฐาน 3 สถานะ
-                    const currentStatus = ['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(item.status)
-                        ? 'รับเรื่อง'
-                        : ['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)
-                            ? 'ไม่รับเรื่อง'
-                            : 'รอรับเรื่อง';
+                    // รองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว"
+                    let currentStatus = 'รับเรื่อง';
+                    if (['ซ่อมเสร็จแล้ว', 'เสร็จสิ้น'].includes(item.status)) {
+                        currentStatus = 'ซ่อมเสร็จแล้ว';
+                    } else if (['กำลังซ่อมแซม', 'กำลังดำเนินการ'].includes(item.status)) {
+                        currentStatus = 'กำลังซ่อมแซม';
+                    } else if (['รับเรื่อง', 'แจ้งแล้ว'].includes(item.status)) {
+                        currentStatus = 'รับเรื่อง';
+                    } else if (['ไม่รับเรื่อง', 'ยกเลิก'].includes(item.status)) {
+                        currentStatus = 'ไม่รับเรื่อง';
+                    } else if (item.status === 'รอรับเรื่อง') {
+                        currentStatus = 'รอรับเรื่อง';
+                    } else {
+                        currentStatus = item.status || 'รับเรื่อง';
+                    }
 
                     return {
                         id: String(item.id),
@@ -264,7 +273,7 @@ export default function ProgressReportPage() {
             diffPercent = 100;
         }
 
-        const acceptedCount = currentMonthReqs.filter(r => r.status === 'รับเรื่อง').length;
+        const acceptedCount = currentMonthReqs.filter(r => ['รับเรื่อง', 'กำลังซ่อมแซม', 'ซ่อมเสร็จแล้ว'].includes(r.status)).length;
         const rejectedCount = currentMonthReqs.filter(r => r.status === 'ไม่รับเรื่อง').length;
 
         return {
@@ -275,16 +284,32 @@ export default function ProgressReportPage() {
         };
     }, [reportList]);
 
-    // แสดงผล Badge สถานะ
+    // แสดงผล Badge สถานะ (รองรับ 3 สถานะหลัก: "รับเรื่อง", "กำลังซ่อมแซม", และ "ซ่อมเสร็จแล้ว")
     const renderStatusBadge = (status: string) => {
         switch (status) {
-            case 'รับเรื่อง':
+            case 'ซ่อมเสร็จแล้ว':
+            case 'เสร็จสิ้น':
                 return (
                     <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]">
+                        ซ่อมเสร็จแล้ว
+                    </span>
+                );
+            case 'กำลังซ่อมแซม':
+            case 'กำลังดำเนินการ':
+                return (
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]">
+                        กำลังซ่อมแซม
+                    </span>
+                );
+            case 'รับเรื่อง':
+            case 'แจ้งแล้ว':
+                return (
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
                         รับเรื่อง
                     </span>
                 );
             case 'ไม่รับเรื่อง':
+            case 'ยกเลิก':
                 return (
                     <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA]">
                         ไม่รับเรื่อง
@@ -293,8 +318,8 @@ export default function ProgressReportPage() {
             case 'รอรับเรื่อง':
             default:
                 return (
-                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#FEF9C3] text-[#854D0E] border border-[#FEF08A]">
-                        รอรับเรื่อง
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB]">
+                        {status || 'รอรับเรื่อง'}
                     </span>
                 );
         }

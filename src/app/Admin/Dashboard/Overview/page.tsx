@@ -235,9 +235,11 @@ const getSubItems = (item: any) => {
 };
 
 const normalizeStatus = (status: any) => {
-    if (['รับเรื่อง', 'แจ้งแล้ว', 'กำลังดำเนินการ', 'เสร็จสิ้น'].includes(status)) return 'รับเรื่อง';
+    if (['ซ่อมเสร็จแล้ว', 'เสร็จสิ้น'].includes(status)) return 'ซ่อมเสร็จแล้ว';
+    if (['กำลังซ่อมแซม', 'กำลังดำเนินการ'].includes(status)) return 'กำลังซ่อมแซม';
+    if (['รับเรื่อง', 'แจ้งแล้ว'].includes(status)) return 'รับเรื่อง';
     if (['ไม่รับเรื่อง', 'ยกเลิก'].includes(status)) return 'ไม่รับเรื่อง';
-    return 'รอรับเรื่อง';
+    return status || 'รอรับเรื่อง';
 };
 
 // Custom Component สำหรับจุดกราฟ
@@ -353,7 +355,7 @@ export default function Dashboard() {
         }
 
         const pendingCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'รอรับเรื่อง').length;
-        const acceptedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'รับเรื่อง').length;
+        const acceptedCount = currentMonthReqs.filter(r => ['รับเรื่อง', 'กำลังซ่อมแซม', 'ซ่อมเสร็จแล้ว'].includes(normalizeStatus(r.status))).length;
         const rejectedCount = currentMonthReqs.filter(r => normalizeStatus(r.status) === 'ไม่รับเรื่อง').length;
 
         return {

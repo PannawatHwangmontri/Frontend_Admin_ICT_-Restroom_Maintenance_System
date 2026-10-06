@@ -242,6 +242,21 @@ const normalizeStatus = (status: any) => {
     return status || 'รอรับเรื่อง';
 };
 
+// Helper Function กรอง/ตัดข้อความหมายเหตุออกจากชื่อปัญหาหรืออาการเสีย
+const cleanProblemName = (text: string) => {
+    if (!text) return 'ไม่มีรายละเอียดปัญหา';
+    let cleaned = text.trim();
+    if (cleaned.includes('- หมายเหตุ:')) {
+        cleaned = cleaned.split('- หมายเหตุ:')[0];
+    } else if (cleaned.includes('หมายเหตุ:')) {
+        cleaned = cleaned.split('หมายเหตุ:')[0];
+    } else if (cleaned.includes('- หมายเหตุ')) {
+        cleaned = cleaned.split('- หมายเหตุ')[0];
+    }
+    cleaned = cleaned.replace(/[-–—]\s*$/, '').trim();
+    return cleaned || 'ไม่มีรายละเอียดปัญหา';
+};
+
 // Custom Component สำหรับจุดกราฟ
 const CustomDot = (props: any) => {
     const { cx, cy, payload } = props;
@@ -458,7 +473,7 @@ export default function Dashboard() {
                 catKey = 'สุขภัณฑ์';
             }
 
-            const problemName = summary.trim() || 'ไม่มีรายละเอียดปัญหา';
+            const problemName = cleanProblemName(summary);
             if (!defaultCats[catKey].itemsMap[problemName]) {
                 defaultCats[catKey].itemsMap[problemName] = [];
             }
@@ -511,7 +526,8 @@ export default function Dashboard() {
                 return;
             }
 
-            const key = `${r.location || ''} - ${r.issue_summary || ''}`;
+            const cleanIssue = cleanProblemName(r.issue_summary || '');
+            const key = `${r.location || ''} - ${cleanIssue}`;
             if (!groupMap[key]) groupMap[key] = [];
             groupMap[key].push(r);
         });
@@ -909,7 +925,20 @@ export default function Dashboard() {
                                             สรุปความเสียหายหมวด{cat.title}:
                                         </p>
                                         <p className="font-bold text-[#6B21A8] leading-relaxed">
-                                            {cat.items.map((item) => item.name).join(' , ')}
+                                            {cat.items.map((item) => {
+                                                const rawName = item.name || '';
+                                                let clean = rawName;
+                                                if (clean.includes('- หมายเหตุ:')) {
+                                                    const parts = clean.split('- หมายเหตุ:');
+                                                    const countMatch = parts[1]?.match(/\(\d+\s*รายการ\)/)?.[0] || '';
+                                                    clean = `${parts[0].trim()} ${countMatch}`.trim();
+                                                } else if (clean.includes('หมายเหตุ:')) {
+                                                    const parts = clean.split('หมายเหตุ:');
+                                                    const countMatch = parts[1]?.match(/\(\d+\s*รายการ\)/)?.[0] || '';
+                                                    clean = `${parts[0].trim()} ${countMatch}`.trim();
+                                                }
+                                                return clean;
+                                            }).join(' , ')}
                                         </p>
                                     </div>
                                 </div>

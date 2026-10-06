@@ -16,7 +16,10 @@ import {
     CheckSquare,
     Square,
     X,
-    CheckCircle2
+    CheckCircle2,
+    FileText,
+    Camera,
+    Loader2
 } from 'lucide-react';
 
 // รายการเมนูสำหรับ Sidebar
@@ -158,6 +161,52 @@ export default function ProgressReportPage() {
 
     // State สำหรับเปิดดู Modal รายละเอียด
     const [activeDetail, setActiveDetail] = useState<any>(null);
+    const [isLoadingImage, setIsLoadingImage] = useState(false);
+    const [viewImageModal, setViewImageModal] = useState<string | null>(null);
+
+    // ดึงรูปภาพขนาดเต็ม On-Demand จาก Backend เมื่อเปิดดู Modal
+    React.useEffect(() => {
+        if (!activeDetail?.id) {
+            setIsLoadingImage(false);
+            return;
+        }
+
+        let isCancelled = false;
+        const detailId = activeDetail.id;
+
+        // ถ้ามีรูป base64 หรือ url โหลดสมบูรณ์แล้ว ไม่จำเป็นต้อง fetch ซ้ำ
+        if (activeDetail.imageUrl && (activeDetail.imageUrl.startsWith('data:') || activeDetail.imageUrl.startsWith('http'))) {
+            setIsLoadingImage(false);
+            return;
+        }
+
+        const fetchFullDetailImage = async () => {
+            try {
+                setIsLoadingImage(true);
+                const res = await fetch(`/api/requests/${detailId}`);
+                const data = await res.json();
+                if (!isCancelled && data.success && data.data?.image_url) {
+                    setActiveDetail((prev: any) =>
+                        prev && prev.id === detailId
+                            ? { ...prev, imageUrl: data.data.image_url }
+                            : prev
+                    );
+                }
+            } catch (err) {
+                console.error('Failed to load detail image automatically:', err);
+            } finally {
+                if (!isCancelled) {
+                    setIsLoadingImage(false);
+                }
+            }
+        };
+
+        fetchFullDetailImage();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [activeDetail?.id]);
 
     // แสดงการแจ้งเตือน Toast
     const showToast = (msg: string) => {
@@ -190,6 +239,24 @@ export default function ProgressReportPage() {
                         cat = 'สุขภัณฑ์';
                     }
 
+                    // แยกชื่อปัญหา และ หมายเหตุเพิ่มเติมออกจากกันอย่างเป็นระเบียบ
+                    let cleanProblem = summary.trim();
+                    let reporterNote = '';
+                    if (cleanProblem.includes('- หมายเหตุ:')) {
+                        const parts = cleanProblem.split('- หมายเหตุ:');
+                        cleanProblem = parts[0].trim();
+                        reporterNote = parts.slice(1).join('- หมายเหตุ:').trim();
+                    } else if (cleanProblem.includes('หมายเหตุ:')) {
+                        const parts = cleanProblem.split('หมายเหตุ:');
+                        cleanProblem = parts[0].trim();
+                        reporterNote = parts.slice(1).join('หมายเหตุ:').trim();
+                    } else if (cleanProblem.includes('- หมายเหตุ')) {
+                        const parts = cleanProblem.split('- หมายเหตุ');
+                        cleanProblem = parts[0].trim();
+                        reporterNote = parts.slice(1).join('- หมายเหตุ').trim();
+                    }
+                    cleanProblem = cleanProblem.replace(/[-–—]\s*$/, '').trim();
+
                     // สกัดชั้นจากสถานที่
                     let floorName = 'ชั้น 1';
                     const loc = item.location || '';
@@ -221,7 +288,9 @@ export default function ProgressReportPage() {
                         floor: floorName,
                         location: loc || 'ไม่ระบุสถานที่',
                         category: cat,
-                        problem: item.issue_summary || 'ไม่มีรายละเอียด',
+                        problem: summary || 'ไม่มีรายละเอียด',
+                        cleanProblem: cleanProblem || 'ไม่มีรายละเอียด',
+                        reporterNote: reporterNote || '',
                         severity: ['สูง', 'วิกฤต', 'HIGH', 'URGENT'].includes(item.priority) ? 'เร่งด่วน' : 'ปกติ',
                         status: currentStatus,
                         remark: item.remark || '',
@@ -663,9 +732,20 @@ export default function ProgressReportPage() {
                                                 <td className="p-3 font-bold text-purple-900">{item.code}</td>
                                                 <td className="p-3 whitespace-nowrap">{item.date}</td>
                                                 <td className="p-3">{item.location}</td>
-                                                <td className="p-3">
-                                                    <div className="font-semibold text-gray-900">{item.category}</div>
-                                                    <div className="text-gray-500">{item.problem}</div>
+                                                <td className="p-3 max-w-[280px]">
+                                                    <div className="font-semibold text-gray-900 truncate" title={item.category}>{item.category}</div>
+                                                    <div className="text-gray-700 font-medium truncate" title={item.cleanProblem || item.problem}>
+                                                        {item.cleanProblem || item.problem}
+                                                    </div>
+                                                    {item.reporterNote && (
+                                                        <div
+                                                            className="mt-1 flex items-center gap-1.5 text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200/80 px-2 py-0.5 rounded-md max-w-full"
+                                                            title={`หมายเหตุจากผู้แจ้ง: ${item.reporterNote}`}
+                                                        >
+                                                            <span className="font-bold text-amber-900 shrink-0">หมายเหตุ:</span>
+                                                            <span className="truncate">{item.reporterNote}</span>
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 text-center">
                                                     <span
@@ -732,7 +812,7 @@ export default function ProgressReportPage() {
             {/* ---------------- Modal แสดงรายละเอียด ---------------- */}
             {activeDetail && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-purple-100">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-purple-100 max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-200">
                         <button
                             onClick={() => setActiveDetail(null)}
                             className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
@@ -744,7 +824,7 @@ export default function ProgressReportPage() {
                             รายละเอียดการแจ้งซ่อม {activeDetail.code}
                         </h3>
 
-                        <div className="space-y-2.5 text-xs text-gray-700 mb-6">
+                        <div className="space-y-2.5 text-xs text-gray-700 mb-5">
                             <div className="flex justify-between py-1 border-b border-gray-100">
                                 <span className="font-semibold text-gray-500">วัน/เดือน/ปี:</span>
                                 <span>{activeDetail.date}</span>
@@ -758,9 +838,23 @@ export default function ProgressReportPage() {
                                 <span>{activeDetail.category}</span>
                             </div>
                             <div className="flex justify-between py-1 border-b border-gray-100">
-                                <span className="font-semibold text-gray-500">ปัญหา:</span>
-                                <span>{activeDetail.problem}</span>
+                                <span className="font-semibold text-gray-500 shrink-0">ปัญหา:</span>
+                                <span className="text-right font-medium text-purple-950">{activeDetail.cleanProblem || activeDetail.problem}</span>
                             </div>
+                            {activeDetail.reporterNote && (
+                                <div className="py-2 border-b border-gray-100">
+                                    <div className="flex items-center gap-1.5 text-amber-900 font-bold mb-1.5 text-[11px]">
+                                        <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>หมายเหตุจากผู้แจ้ง:</span>
+                                        <span className="text-[10px] text-amber-700 bg-amber-200/60 px-1.5 py-0.2 rounded-full font-medium">
+                                            {activeDetail.reporterNote.length} ตัวอักษร
+                                        </span>
+                                    </div>
+                                    <div className="bg-amber-50/80 border border-amber-200/90 rounded-xl p-2.5 text-xs text-gray-700 leading-relaxed break-words max-h-28 overflow-y-auto">
+                                        {activeDetail.reporterNote}
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex justify-between py-1 border-b border-gray-100">
                                 <span className="font-semibold text-gray-500">ระดับความสำคัญ:</span>
                                 <span className="font-bold text-red-600">{activeDetail.severity}</span>
@@ -772,12 +866,102 @@ export default function ProgressReportPage() {
                             </div>
                         </div>
 
+                        {/* แสดงรูปภาพความเสียหาย */}
+                        <div className="mb-5">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                    <Camera className="w-3.5 h-3.5 text-purple-700" />
+                                    <span>รูปภาพความเสียหาย</span>
+                                </label>
+                                {activeDetail.imageUrl && !isLoadingImage && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewImageModal(activeDetail.imageUrl)}
+                                        className="flex items-center gap-1 text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100/80 hover:bg-purple-200 border border-purple-300 px-2 py-0.5 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                                        title="ดูภาพขนาดใหญ่"
+                                    >
+                                        <Eye className="w-3 h-3" />
+                                        <span>ขยายภาพ</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl overflow-hidden bg-gray-50 border border-purple-200/60 min-h-[140px] max-h-[220px] flex items-center justify-center relative group">
+                                {isLoadingImage ? (
+                                    <div className="py-8 flex flex-col items-center justify-center gap-2 text-gray-500">
+                                        <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                                        <span className="text-xs font-medium">กำลังโหลดรูปภาพประกอบ...</span>
+                                    </div>
+                                ) : activeDetail.imageUrl ? (
+                                    <>
+                                        <img
+                                            src={activeDetail.imageUrl}
+                                            alt="รูปภาพความเสียหาย"
+                                            onClick={() => setViewImageModal(activeDetail.imageUrl)}
+                                            className="w-full h-full max-h-[220px] object-contain cursor-pointer hover:opacity-95 transition-opacity"
+                                            title="คลิกเพื่อดูภาพขนาดใหญ่"
+                                        />
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-xs px-2 py-1 rounded-lg opacity-90 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewImageModal(activeDetail.imageUrl)}
+                                                className="text-white hover:text-purple-200 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                                                title="ดูภาพขนาดใหญ่"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                                <span>ขยายภาพ</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="py-8 text-gray-400 text-xs text-center flex flex-col items-center justify-center gap-1">
+                                        <Camera className="w-6 h-6 text-gray-300" />
+                                        <span>ไม่มีรูปภาพแนบสำหรับรายการนี้</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <button
                             onClick={() => setActiveDetail(null)}
                             className="w-full bg-[#6B21A8] hover:bg-purple-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                         >
                             ปิดหน้าต่าง
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ---------------- Modal แสดงรูปภาพขยายขนาดใหญ่ ---------------- */}
+            {viewImageModal && (
+                <div
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in fade-in duration-150"
+                    onClick={() => setViewImageModal(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl max-w-2xl w-full p-4 relative shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-3 pr-8">
+                            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                <Camera className="w-4 h-4 text-purple-700" />
+                                <span>รูปภาพความเสียหาย {activeDetail?.code}</span>
+                            </h4>
+                        </div>
+                        <button
+                            onClick={() => setViewImageModal(null)}
+                            className="absolute right-3 top-3 bg-gray-100 hover:bg-gray-200 text-gray-600 p-1.5 rounded-full transition-colors cursor-pointer z-10"
+                            title="ปิด"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <div className="rounded-xl overflow-hidden bg-gray-100 min-h-[200px] max-h-[75vh] flex items-center justify-center">
+                            <img
+                                src={viewImageModal}
+                                alt="รูปภาพความเสียหาย"
+                                className="w-full h-full max-h-[75vh] object-contain"
+                            />
+                        </div>
                     </div>
                 </div>
             )}
